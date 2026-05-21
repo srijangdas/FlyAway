@@ -1,59 +1,98 @@
 "use client";
 
 import { useState } from "react";
-import { Search, MapPin, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
+
+import {
+  Calendar,
+  MapPin,
+  Search,
+  Users,
+} from "lucide-react";
+
+import { airports }
+from "@/constants/airports";
 
 export default function FlightSearch() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
-    from: "",
-    to: "",
-    departureDate: "",
-    passengers: 1,
-    classType: "economy",
-  });
+  const [from, setFrom] =
+    useState("");
 
-  const handleSearch = () => {
-    const params = new URLSearchParams({
-      from: form.from,
-      to: form.to,
-      departureDate:
-        form.departureDate,
-      passengers:
-        form.passengers.toString(),
-      class:
-        form.classType,
-    });
+  const [to, setTo] =
+    useState("");
+
+  const [date, setDate] =
+    useState("");
+
+  const [passengers, setPassengers] =
+    useState("1");
+
+  const [flightClass, setFlightClass] =
+    useState("economy");
+
+  function handleSearch() {
+    if (!from || !to) {
+      return;
+    }
+
+    const params =
+      new URLSearchParams();
+
+    params.set(
+      "from",
+      from
+    );
+
+    params.set(
+      "to",
+      to
+    );
+
+    if (date) {
+      params.set(
+        "date",
+        date
+      );
+    }
+
+    params.set(
+      "passengers",
+      passengers
+    );
+
+    params.set(
+      "class",
+      flightClass
+    );
 
     router.push(
       `/flights?${params.toString()}`
     );
-  };
+  }
 
   return (
-    <div
+    <section
       className="
-      rounded-[32px]
+      rounded-[36px]
       bg-white p-6
-      shadow-2xl
+      shadow-lg
       dark:bg-slate-900
     "
     >
       <div
         className="
-        grid gap-5
+        grid gap-6
         md:grid-cols-2
-        lg:grid-cols-3
+        xl:grid-cols-3
       "
       >
         {/* FROM */}
         <div>
           <label
             className="
-            mb-2 block
-            text-sm font-medium
+            mb-3 block
+            text-lg font-semibold
           "
           >
             From
@@ -62,32 +101,56 @@ export default function FlightSearch() {
           <div
             className="
             flex items-center
-            rounded-2xl border
-            border-slate-300
-            px-4 py-4
+            gap-3 rounded-[24px]
+            border border-slate-300
+            px-5 py-5
             dark:border-slate-700
           "
           >
             <MapPin
-              size={20}
-              className="mr-2"
+              className="
+              text-slate-500
+            "
             />
 
-            <input
-              type="text"
-              placeholder="Kolkata"
+            <select
+            title="city"
+              value={from}
+              onChange={(e) =>
+                setFrom(
+                  e.target.value
+                )
+              }
               className="
               w-full bg-transparent
               outline-none
             "
-              value={form.from}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  from: e.target.value,
-                })
-              }
-            />
+            >
+              <option value="">
+                Select City
+              </option>
+
+              {airports.map(
+                (airport) => (
+                  <option
+                    key={
+                      airport.code
+                    }
+                    value={
+                      airport.code
+                    }
+                  >
+                    {airport.city}
+                    {" "}
+                    (
+                    {
+                      airport.code
+                    }
+                    )
+                  </option>
+                )
+              )}
+            </select>
           </div>
         </div>
 
@@ -95,8 +158,8 @@ export default function FlightSearch() {
         <div>
           <label
             className="
-            mb-2 block
-            text-sm font-medium
+            mb-3 block
+            text-lg font-semibold
           "
           >
             To
@@ -105,32 +168,56 @@ export default function FlightSearch() {
           <div
             className="
             flex items-center
-            rounded-2xl border
-            border-slate-300
-            px-4 py-4
+            gap-3 rounded-[24px]
+            border border-slate-300
+            px-5 py-5
             dark:border-slate-700
           "
           >
             <MapPin
-              size={20}
-              className="mr-2"
+              className="
+              text-slate-500
+            "
             />
 
-            <input
-              type="text"
-              placeholder="Delhi"
+            <select
+            title="city"
+              value={to}
+              onChange={(e) =>
+                setTo(
+                  e.target.value
+                )
+              }
               className="
               w-full bg-transparent
               outline-none
             "
-              value={form.to}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  to: e.target.value,
-                })
-              }
-            />
+            >
+              <option value="">
+                Select City
+              </option>
+
+              {airports.map(
+                (airport) => (
+                  <option
+                    key={
+                      airport.code
+                    }
+                    value={
+                      airport.code
+                    }
+                  >
+                    {airport.city}
+                    {" "}
+                    (
+                    {
+                      airport.code
+                    }
+                    )
+                  </option>
+                )
+              )}
+            </select>
           </div>
         </div>
 
@@ -138,42 +225,51 @@ export default function FlightSearch() {
         <div>
           <label
             className="
-            mb-2 block
-            text-sm font-medium
+            mb-3 block
+            text-lg font-semibold
           "
           >
             Departure
           </label>
 
-          <input
-            title="flight-depar"
-            type="date"
+          <div
             className="
-            w-full rounded-2xl
+            flex items-center
+            gap-3 rounded-[24px]
             border border-slate-300
-            bg-transparent
-            px-4 py-4
+            px-5 py-5
             dark:border-slate-700
           "
-            value={
-              form.departureDate
-            }
-            onChange={(e) =>
-              setForm({
-                ...form,
-                departureDate:
-                  e.target.value,
-              })
-            }
-          />
+          >
+            <Calendar
+              className="
+              text-slate-500
+            "
+            />
+
+            <input
+            title="date"
+              type="date"
+              value={date}
+              onChange={(e) =>
+                setDate(
+                  e.target.value
+                )
+              }
+              className="
+              w-full bg-transparent
+              outline-none
+            "
+            />
+          </div>
         </div>
 
         {/* PASSENGERS */}
         <div>
           <label
             className="
-            mb-2 block
-            text-sm font-medium
+            mb-3 block
+            text-lg font-semibold
           "
           >
             Passengers
@@ -182,43 +278,41 @@ export default function FlightSearch() {
           <div
             className="
             flex items-center
-            rounded-2xl border
-            border-slate-300
-            px-4 py-4
+            gap-3 rounded-[24px]
+            border border-slate-300
+            px-5 py-5
             dark:border-slate-700
           "
           >
             <Users
-              size={20}
-              className="mr-2"
+              className="
+              text-slate-500
+            "
             />
 
             <select
-            title="flight-passengers"
+            title="passenger"
+              value={passengers}
+              onChange={(e) =>
+                setPassengers(
+                  e.target.value
+                )
+              }
               className="
               w-full bg-transparent
               outline-none
             "
-              value={
-                form.passengers
-              }
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  passengers:
-                    Number(
-                      e.target.value
-                    ),
-                })
-              }
             >
-              {[1,2,3,4,5].map(
-                (n) => (
+              {[1, 2, 3, 4, 5].map(
+                (count) => (
                   <option
-                    key={n}
-                    value={n}
+                    key={count}
+                    value={count}
                   >
-                    {n} Passenger
+                    {count} Passenger
+                    {count > 1
+                      ? "s"
+                      : ""}
                   </option>
                 )
               )}
@@ -230,64 +324,70 @@ export default function FlightSearch() {
         <div>
           <label
             className="
-            mb-2 block
-            text-sm font-medium
+            mb-3 block
+            text-lg font-semibold
           "
           >
             Class
           </label>
 
-          <select
-            title="flight-class"
+          <div
             className="
-            w-full rounded-2xl
+            rounded-[24px]
             border border-slate-300
-            bg-transparent
-            px-4 py-4
+            px-5 py-5
             dark:border-slate-700
           "
-            value={
-              form.classType
-            }
-            onChange={(e) =>
-              setForm({
-                ...form,
-                classType:
-                  e.target.value,
-              })
-            }
           >
-            <option value="economy">
-              Economy
-            </option>
+            <select
+            title="flight-type"
+              value={flightClass}
+              onChange={(e) =>
+                setFlightClass(
+                  e.target.value
+                )
+              }
+              className="
+              w-full bg-transparent
+              outline-none
+            "
+            >
+              <option value="economy">
+                Economy
+              </option>
 
-            <option value="business">
-              Business
-            </option>
+              <option value="business">
+                Business
+              </option>
 
-            <option value="first">
-              First Class
-            </option>
-          </select>
+              <option value="first">
+                First Class
+              </option>
+            </select>
+          </div>
         </div>
       </div>
 
+      {/* SEARCH BUTTON */}
       <button
         onClick={handleSearch}
+        disabled={!from || !to}
         className="
-        mt-6 flex w-full
+        mt-8 flex w-full
         items-center
-        justify-center gap-2
-        rounded-2xl
-        bg-blue-600 py-5
-        text-lg font-semibold
-        text-white
-        transition hover:bg-blue-700
+        justify-center gap-3
+        rounded-[28px]
+        bg-blue-600 py-6
+        text-xl font-semibold
+        text-white transition
+        hover:bg-blue-700
+        disabled:cursor-not-allowed
+        disabled:opacity-60
       "
       >
-        <Search size={22} />
+        <Search size={24} />
         Search Flights
       </button>
-    </div>
+    </section>
   );
 }

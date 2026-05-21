@@ -2,6 +2,8 @@
 
 import { Clock3, Plane } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { createClient } from "@/lib/supabase/client";
 
 type FlightCardProps = {
   id: number;
@@ -26,13 +28,35 @@ export default function FlightCard({
   duration,
   price,
 }: FlightCardProps) {
+  const supabase = createClient();
   const router = useRouter();
+
+  async function handleClick() {
+  const {
+    data: { user },
+  } =
+    await supabase.auth.getUser();
+
+  if (!user) {
+    toast.error(
+      "Please login to continue booking"
+    );
+
+    setTimeout(() => {
+      router.push("/login");
+    }, 1200);
+
+    return;
+  }
+
+  router.push(
+    `/flights/${id}`
+  );
+}
 
   return (
     <button
-      onClick={() =>
-        router.push(`/flights/${id}`)
-      }
+      onClick={handleClick}
       className="
       group w-full
       rounded-[32px]

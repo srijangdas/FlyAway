@@ -2,42 +2,61 @@ import Navbar from "@/components/layout/Navbar";
 import FlightSearch from "@/components/flight/flight-search";
 import FlightCard from "@/components/flight/flight-card";
 
-export default function FlightsPage() {
-  const flights = [
+import { createClient }
+from "@/lib/supabase/server";
+
+export default async function FlightsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    from?: string;
+    to?: string;
+    date?: string;
+    class?: string;
+  }>;
+}) {
+  const params =
+    await searchParams;
+
+  const supabase =
+    await createClient();
+
+  let query =
+    supabase
+      .from("flights")
+      .select("*")
+      .eq(
+        "status",
+        "scheduled"
+      );
+
+  // Filter origin
+  if (params.from) {
+    query = query.ilike(
+      "origin",
+      `%${params.from}%`
+    );
+  }
+
+  // Filter destination
+  if (params.to) {
+    query = query.ilike(
+      "destination",
+      `%${params.to}%`
+    );
+  }
+
+  const {
+    data: flights,
+    error,
+  } = await query.order(
+    "departs_at",
     {
-      id: 1,
-      airline: "SkyAir",
-      stops: "Non-stop",
-      departureTime: "08:00 AM",
-      arrivalTime: "12:30 PM",
-      origin: "JFK",
-      destination: "LHR",
-      duration: "7h 30m",
-      price: 599,
-    },
-    {
-      id: 2,
-      airline: "Global Wings",
-      stops: "1 Stop",
-      departureTime: "10:30 AM",
-      arrivalTime: "03:45 PM",
-      origin: "JFK",
-      destination: "LHR",
-      duration: "8h 15m",
-      price: 449,
-    },
-    {
-      id: 3,
-      airline: "CloudLine",
-      stops: "Non-stop",
-      departureTime: "02:00 PM",
-      arrivalTime: "07:00 PM",
-      origin: "JFK",
-      destination: "LHR",
-      duration: "7h 00m",
-      price: 689,
-    },
-  ];
+      ascending: true,
+    }
+  );
+
+  console.log(error);
 
   return (
     <>
@@ -45,110 +64,147 @@ export default function FlightsPage() {
 
       <main
         className="
-          min-h-screen
-          bg-slate-50
-          px-4 py-8
-          transition-colors
-          dark:bg-slate-950
-          md:px-8
-        "
+        min-h-screen
+        bg-slate-50
+        px-4 py-8
+        dark:bg-slate-950
+      "
       >
-        <div className="mx-auto max-w-7xl">
-          {/* HEADER */}
-          <div className="mb-8">
-            <h1
+        <div
+          className="
+          mx-auto
+          max-w-7xl
+        "
+        >
+          {/* Search */}
+          <FlightSearch />
+
+          {/* Results */}
+          <div className="mt-10">
+            <div
               className="
-                text-4xl
-                font-bold
-                tracking-tight
-              "
-            >
-              Find Flights
-            </h1>
-
-            <p
-              className="
-                mt-2
-                text-slate-500
-                dark:text-slate-400
-              "
-            >
-              Search and compare flights
-              at the best prices.
-            </p>
-          </div>
-
-          {/* SEARCH BAR */}
-          <section className="mb-10">
-            <FlightSearch />
-          </section>
-
-          {/* TOP BAR */}
-          <div
-            className="
               mb-6 flex
-              flex-wrap items-center
-              justify-between gap-4
+              items-center
+              justify-between
             "
-          >
-            <div>
+            >
               <h2
                 className="
-                  text-2xl
-                  font-semibold
+                text-2xl
+                font-bold
                 "
               >
                 Available Flights
               </h2>
 
-              <p
+              <span
                 className="
-                  text-slate-500
-                  dark:text-slate-400
-                "
+                text-slate-500
+              "
               >
-                {flights.length} flights found
-              </p>
+                {flights?.length ?? 0}
+                {" "}Flights
+              </span>
             </div>
 
-            <select
-              title="flight-price"
-              className="
-                rounded-2xl
-                border border-slate-300
-                bg-white
-                px-4 py-3
-                outline-none
-                dark:border-slate-700
+            {/* No flights */}
+            {flights?.length ===
+              0 && (
+              <div
+                className="
+                rounded-[32px]
+                bg-white p-10
+                text-center
+                shadow-lg
                 dark:bg-slate-900
               "
-            >
-              <option>
-                Sort by Price
-              </option>
-              <option>
-                Sort by Duration
-              </option>
-              <option>
-                Earliest Departure
-              </option>
-            </select>
-          </div>
+              >
+                <h3
+                  className="
+                  text-2xl
+                  font-bold
+                "
+                >
+                  No flights found
+                </h3>
 
-          {/* FLIGHT CARDS */}
-          <section
-            className="
-              flex flex-col
-              gap-5
-            "
-          >
-            {flights.map((flight) => (
-              <FlightCard
-                key={flight.id}
-                {...flight}
-              />
-            ))}
-          </section>
+                <p
+                  className="
+                  mt-2
+                  text-slate-500
+                "
+                >
+                  Try changing
+                  destination or date.
+                </p>
+              </div>
+            )}
+
+            {/* Flights */}
+            <div className="space-y-5">
+              {flights?.map(
+                (flight) => (
+                  <FlightCard
+                    key={
+                      flight.id
+                    }
+                    id={
+                      flight.id
+                    }
+                    airline={
+                      flight
+                        .flight_no
+                    }
+                    stops="Non-stop"
+                    departureTime={new Date(
+                      flight.departs_at
+                    ).toLocaleTimeString(
+                      [],
+                      {
+                        hour:
+                          "2-digit",
+                        minute:
+                          "2-digit",
+                      }
+                    )}
+                    arrivalTime={new Date(
+                      flight.arrives_at
+                    ).toLocaleTimeString(
+                      [],
+                      {
+                        hour:
+                          "2-digit",
+                        minute:
+                          "2-digit",
+                      }
+                    )}
+                    origin={
+                      flight.origin
+                    }
+                    destination={
+                      flight.destination
+                    }
+                    duration={`${Math.floor(
+                      (
+                        new Date(
+                          flight.arrives_at
+                        ).getTime() -
+                        new Date(
+                          flight.departs_at
+                        ).getTime()
+                      ) /
+                        1000 /
+                        60 /
+                        60
+                    )}h`}
+                    price={
+                      flight.base_price
+                    }
+                  />
+                )
+              )}
+            </div>
+          </div>
         </div>
       </main>
     </>

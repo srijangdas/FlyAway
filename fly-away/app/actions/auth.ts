@@ -1,46 +1,67 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
+import { redirect }
+from "next/navigation";
 
-export async function signUp(formData: FormData) {
-  const supabase = await createClient();
+import { createClient }
+from "@/lib/supabase/server";
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
+export async function signUp(
+  email: string,
+  password: string
+) {
+  const supabase =
+    await createClient();
 
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-  });
+  const { error } =
+    await supabase.auth.signUp({
+      email,
+      password,
+    });
 
   if (error) {
-    throw new Error(error.message);
+    return {
+      success: false,
+      message:
+        error.message,
+    };
   }
 
-  redirect("/flights");
+  return {
+    success: true,
+  };
 }
 
-export async function login(formData: FormData) {
-  const supabase = await createClient();
+export async function login(
+  email: string,
+  password: string
+) {
+  const supabase =
+    await createClient();
 
-  const email = formData.get("email") as string;
-  const password = formData.get("password") as string;
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
+  const { error } =
+    await supabase.auth
+      .signInWithPassword({
+        email,
+        password,
+      });
 
   if (error) {
-    throw new Error(error.message);
+    return {
+      success: false,
+      message:
+        error.message,
+    };
   }
 
-  redirect("/flights");
+  return {
+    success: true,
+  };
 }
 
 export async function logout() {
-  const supabase = await createClient();
+  const supabase =
+    await createClient();
 
   await supabase.auth.signOut();
 

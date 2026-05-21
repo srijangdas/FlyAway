@@ -1,5 +1,10 @@
+"use client";
+
 import Navbar from "@/components/layout/Navbar";
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function Page() {
   const bookings = [
@@ -12,6 +17,25 @@ export default function Page() {
       status: "Confirmed",
     },
   ];
+
+  const router = useRouter();
+const supabase =
+  createClient();
+
+useEffect(() => {
+  async function checkAuth() {
+    const {
+      data: { user },
+    } =
+      await supabase.auth.getUser();
+
+    if (!user) {
+      router.push("/login");
+    }
+  }
+
+  checkAuth();
+}, []);
 
   return (
     <>
