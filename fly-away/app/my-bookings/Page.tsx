@@ -1,41 +1,103 @@
 "use client";
 
 import Navbar from "@/components/layout/Navbar";
+
+import { useEffect, useState } from "react";
+
 import Link from "next/link";
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+
 import { createClient } from "@/lib/supabase/client";
 
-export default function Page() {
-  const bookings = [
-    {
-      id: 1,
-      from: "JFK",
-      to: "LHR",
-      date: "24 May",
-      pnr: "SKY123",
-      status: "Confirmed",
-    },
-  ];
+import type { Booking } from "@/types/booking";
+import type { Flight } from "@/types/flight";
+import type { Seat } from "@/types/seat";
+import type { BookingCard } from "@/types/ui";
 
-  const router = useRouter();
-const supabase =
-  createClient();
+export default function MyBookingsPage() {
+  const supabase = createClient();
 
-useEffect(() => {
-  async function checkAuth() {
-    const {
-      data: { user },
-    } =
-      await supabase.auth.getUser();
+  const [loading, setLoading] = useState(true);
 
-    if (!user) {
-      router.push("/login");
+  const [bookings, setBookings] = useState<BookingCard[]>([]);
+
+  useEffect(() => {
+    async function loadBookings() {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setLoading(false);
+
+          return;
+        }
+
+        // BOOKINGS
+        const { data: bookingData, error } = await supabase
+          .from("bookings")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("booked_at", {
+            ascending: false,
+          });
+
+        console.log(error);
+
+        if (!bookingData) {
+          setLoading(false);
+
+          return;
+        }
+
+        // FETCH FLIGHT + SEAT
+        const enrichedBookings = await Promise.all(
+          bookingData.map(async (booking) => {
+            const { data: flight } = await supabase
+              .from("flights")
+              .select("*")
+              .eq("id", booking.flight_id)
+              .single();
+
+            const { data: seat } = await supabase
+              .from("seats")
+              .select("*")
+              .eq("id", booking.seat_id)
+              .single();
+
+            return {
+              ...booking,
+              flight,
+              seat,
+            };
+          }),
+        );
+
+        setBookings(enrichedBookings);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoading(false);
+      }
     }
-  }
 
-  checkAuth();
-}, []);
+    loadBookings();
+  }, []);
+
+  if (loading) {
+    return (
+      <div
+        className="
+        flex min-h-screen
+        items-center
+        justify-center
+        text-2xl
+      "
+      >
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <>
@@ -45,55 +107,220 @@ useEffect(() => {
         className="
         min-h-screen
         bg-slate-50
-        p-6 dark:bg-slate-950
+        px-4 py-10
+        dark:bg-slate-950
       "
       >
-        <div className="mx-auto max-w-6xl">
-          <h1
+        <div
+          className="
+          mx-auto
+          max-w-6xl
+        "
+        >
+          <div
             className="
-            text-4xl font-bold
+            mb-8 flex
+            items-center
+            justify-between
           "
           >
-            My Bookings
-          </h1>
+            <h1
+              className="
+              text-4xl
+              font-bold
+            "
+            >
+              My Bookings
+            </h1>
 
-          <div className="mt-8 space-y-5">
-            {bookings.map(
-              (booking) => (
-                <Link
-                  key={booking.id}
-                  href={`/my-bookings/${booking.id}`}
-                  className="
-                  block rounded-[32px]
-                  bg-white p-6
-                  shadow-lg
-                  dark:bg-slate-900
-                "
-                >
-                  <h2
-                    className="
-                    text-2xl
-                    font-bold
-                  "
-                  >
-                    {booking.from}
-                    → {booking.to}
-                  </h2>
-
-                  <p>
-                    PNR:
-                    {booking.pnr}
-                  </p>
-
-                  <p>
-                    {
-                      booking.status
-                    }
-                  </p>
-                </Link>
-              )
-            )}
+            <span
+              className="
+              rounded-full
+              bg-blue-100
+              px-4 py-2
+              text-sm
+              font-medium
+              text-blue-700
+            "
+            >
+              {bookings.length} Booking(s)
+            </span>
           </div>
+
+          {bookings.length === 0 ? (
+            <div
+              className="
+              rounded-[32px]
+              bg-white
+              p-12
+              text-center
+              shadow-lg
+              dark:bg-slate-900
+            "
+            >
+              <h2
+                className="
+                text-2xl
+                font-bold
+              "
+              >
+                No bookings yet
+              </h2>
+
+              <p
+                className="
+                mt-2
+                text-slate-500
+              "
+              >
+                Start booking your next flight.
+              </p>
+
+              <Link
+                href="/"
+                className="
+                mt-6 inline-flex
+                rounded-2xl
+                bg-blue-600
+                px-6 py-4
+                font-semibold
+                text-white
+              "
+              >
+                Search Flights
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {bookings.map((booking) => (
+                <div
+                  key={booking.id}
+                  className="
+                    rounded-[32px]
+                    bg-white
+                    p-6
+                    shadow-lg
+                    dark:bg-slate-900
+                  "
+                >
+                  <div
+                    className="
+                      flex flex-col
+                      gap-6
+                      lg:flex-row
+                      lg:items-center
+                      lg:justify-between
+                    "
+                  >
+                    {/* LEFT */}
+                    <div>
+                      <div
+                        className="
+                          flex items-center
+                          gap-3
+                        "
+                      >
+                        <h2
+                          className="
+                            text-2xl
+                            font-bold
+                          "
+                        >
+                          {booking.flight?.flight_no}
+                        </h2>
+
+                        <span
+                          className="
+                            rounded-full
+                            bg-green-100
+                            px-3 py-1
+                            text-sm
+                            font-medium
+                            text-green-700
+                          "
+                        >
+                          {booking.status}
+                        </span>
+                      </div>
+
+                      <p
+                        className="
+                          mt-2
+                          text-slate-500
+                        "
+                      >
+                        {booking.flight?.origin}
+                        {" → "}
+                        {booking.flight?.destination}
+                      </p>
+
+                      <p className="mt-2">
+                        PNR:{" "}
+                        <span className="font-semibold">
+                          {booking.pnr_code}
+                        </span>
+                      </p>
+
+                      <p className="mt-1">
+                        Seat: {booking.seat?.seat_number}
+                        {" • "}
+                        {booking.seat?.class}
+                      </p>
+                    </div>
+
+                    {/* RIGHT */}
+                    <div
+                      className="
+                        flex flex-col
+                        gap-4
+                        lg:items-end
+                      "
+                    >
+                      <h3
+                        className="
+                          text-3xl
+                          font-bold
+                          text-blue-600
+                        "
+                      >
+                        ₹{booking.total_price}
+                      </h3>
+
+                      <div
+                        className="
+                          flex flex-wrap
+                          gap-3
+                        "
+                      >
+                        <Link
+                          href={`/booking/confirmation?pnr=${booking.pnr_code}`}
+                          className="
+                            rounded-2xl
+                            bg-blue-600
+                            px-5 py-3
+                            text-white
+                          "
+                        >
+                          View Ticket
+                        </Link>
+
+                        <Link
+                          href={`/my-bookings/${booking.id}/reschedule`}
+                          className="
+                            rounded-2xl
+                            border
+                            px-5 py-3
+                          "
+                        >
+                          Reschedule
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </main>
     </>

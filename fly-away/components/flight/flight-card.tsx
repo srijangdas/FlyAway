@@ -1,78 +1,66 @@
 "use client";
 
-import { Clock3, Plane } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+
+import { Clock3, Plane } from "lucide-react";
+
 import { createClient } from "@/lib/supabase/client";
 
-type FlightCardProps = {
-  id: number;
-  airline: string;
-  stops: string;
-  departureTime: string;
-  arrivalTime: string;
-  origin: string;
-  destination: string;
-  duration: string;
-  price: number;
-};
+import type { FlightCardProps } from "@/types/ui";
 
 export default function FlightCard({
   id,
   airline,
-  stops,
   departureTime,
   arrivalTime,
   origin,
   destination,
   duration,
-  price,
+  stops,
+  classOptions,
 }: FlightCardProps) {
-  const supabase = createClient();
   const router = useRouter();
 
-  async function handleClick() {
-  const {
-    data: { user },
-  } =
-    await supabase.auth.getUser();
+  const supabase = createClient();
 
-  if (!user) {
-    toast.error(
-      "Please login to continue booking"
-    );
+  async function handleBooking() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    setTimeout(() => {
-      router.push("/login");
-    }, 1200);
+    if (!user) {
+      toast.error("Please login to continue booking");
 
-    return;
+      setTimeout(() => {
+        router.push("/login");
+      }, 1000);
+
+      return;
+    }
+
+    router.push(`/flights/${id}`);
   }
-
-  router.push(
-    `/flights/${id}`
-  );
-}
 
   return (
     <button
-      onClick={handleClick}
+      onClick={handleBooking}
       className="
-      group w-full
-      rounded-[32px]
+      w-full rounded-[32px]
       border border-slate-200
-      bg-white p-6
-      shadow-sm transition-all
-      hover:scale-[1.01]
+      bg-white p-5
+      text-left shadow-md
+      transition-all
       hover:shadow-xl
       dark:border-slate-800
       dark:bg-slate-900
     "
     >
+      {/* TOP */}
       <div
         className="
-        flex flex-col gap-6
-        lg:flex-row
+        flex flex-col
+        gap-5 lg:flex-row
         lg:items-center
         lg:justify-between
       "
@@ -80,8 +68,8 @@ export default function FlightCard({
         {/* LEFT */}
         <div
           className="
-          flex items-center gap-4
-          lg:w-[220px]
+          flex items-center
+          gap-4
         "
         >
           <div
@@ -91,24 +79,29 @@ export default function FlightCard({
             justify-center
             rounded-2xl
             bg-blue-100
-            text-blue-600
             dark:bg-slate-800
           "
           >
-            <Plane size={28} />
+            <Plane
+              className="
+              text-blue-600
+            "
+            />
           </div>
 
-          <div className="text-left">
-            <h3
+          <div>
+            <h2
               className="
-              text-xl font-bold
+              text-xl
+              font-bold
             "
             >
               {airline}
-            </h3>
+            </h2>
 
             <p
               className="
+              text-sm
               text-slate-500
             "
             >
@@ -121,14 +114,17 @@ export default function FlightCard({
         <div
           className="
           flex flex-1
-          items-center gap-4
+          flex-col items-center
+          gap-4 lg:flex-row
+          lg:justify-center
         "
         >
           {/* Departure */}
-          <div className="text-left">
+          <div className="text-center">
             <h2
               className="
-              text-2xl font-bold
+              text-2xl
+              font-bold
             "
             >
               {departureTime}
@@ -143,47 +139,35 @@ export default function FlightCard({
             </p>
           </div>
 
-          {/* Line */}
+          {/* Plane line */}
           <div
             className="
-            relative hidden
-            flex-1 items-center
-            lg:flex
+            flex flex-col
+            items-center
+            text-slate-500
           "
           >
-            <div
+            <Plane
               className="
-              h-[2px] w-full
-              bg-slate-300
-              dark:bg-slate-700
+              rotate-90
             "
             />
 
-            <div
+            <span
               className="
-              absolute left-1/2
-              flex h-10 w-10
-              -translate-x-1/2
-              items-center
-              justify-center
-              rounded-full
-              bg-white
-              text-slate-500
-              dark:bg-slate-900
+              text-sm
             "
             >
-              <Plane
-                size={20}
-                className="rotate-90"
-              />
-            </div>
+              {duration}
+            </span>
           </div>
 
           {/* Arrival */}
-          <div className="text-left">
+          <div className="text-center">
             <h2
               className="
-              text-2xl font-bold
+              text-2xl
+              font-bold
             "
             >
               {arrivalTime}
@@ -199,60 +183,54 @@ export default function FlightCard({
           </div>
         </div>
 
-        {/* DURATION */}
+        {/* Duration */}
         <div
           className="
-          flex items-center gap-2
+          flex items-center
+          gap-2 text-sm
           text-slate-500
         "
         >
-          <Clock3 size={20} />
+          <Clock3 size={18} />
 
-          <span
-            className="
-            text-lg
-          "
-          >
-            {duration}
-          </span>
+          <span>{duration}</span>
         </div>
+      </div>
 
-        {/* PRICE */}
-        <div
+      {/* CLASS OPTIONS */}
+      <div className="mt-6">
+        <p
           className="
-          text-left lg:text-right
+          mb-4 text-sm
+          text-slate-500
         "
         >
-          <p
-            className="
-            text-sm text-slate-500
-          "
-          >
-            from
-          </p>
+          Available Classes
+        </p>
 
-          <h2
-            className="
-            text-3xl font-bold
-            text-blue-600
-          "
-          >
-            ₹{price}
-          </h2>
+        <div className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-4">
+            {classOptions.map((option) => (
+              <div
+                key={option.type}
+                className="rounded-2xl border border-slate-200 p-4 dark:border-slate-700"
+              >
+                <h3 className="font-semibold capitalize">{option.type}</h3>
 
-          <div
-            className="
-            mt-3 rounded-2xl
-            bg-blue-600
-            px-5 py-3
-            text-center
-            font-medium
-            text-white
-            transition
-            group-hover:bg-blue-700
-          "
-          >
-            View Details
+                <p className="mt-1 text-lg font-bold text-blue-600">
+                  ₹{option.price}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex justify-end mt-2">
+            <button
+              type="button"
+              className="w-full max-w-40 rounded-2xl bg-blue-600 py-2.5 text-center font-semibold text-white transition hover:bg-blue-700"
+            >
+              Book Now
+            </button>
           </div>
         </div>
       </div>

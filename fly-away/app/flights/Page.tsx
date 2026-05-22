@@ -2,8 +2,7 @@ import Navbar from "@/components/layout/Navbar";
 import FlightSearch from "@/components/flight/flight-search";
 import FlightCard from "@/components/flight/flight-card";
 
-import { createClient }
-from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function FlightsPage({
   searchParams,
@@ -12,49 +11,36 @@ export default async function FlightsPage({
     from?: string;
     to?: string;
     date?: string;
-    class?: string;
   }>;
 }) {
-  const params =
-    await searchParams;
+  const params = await searchParams;
 
-  const supabase =
-    await createClient();
+  const supabase = await createClient();
 
-  let query =
-    supabase
-      .from("flights")
-      .select("*")
-      .eq(
-        "status",
-        "scheduled"
-      );
+  let query = supabase.from("flights").select("*").eq("status", "scheduled");
 
-  // Filter origin
+  // FROM
   if (params.from) {
-    query = query.ilike(
-      "origin",
-      `%${params.from}%`
-    );
+    query = query.eq("origin", params.from);
   }
 
-  // Filter destination
+  // TO
   if (params.to) {
-    query = query.ilike(
-      "destination",
-      `%${params.to}%`
-    );
+    query = query.eq("destination", params.to);
   }
 
-  const {
-    data: flights,
-    error,
-  } = await query.order(
-    "departs_at",
-    {
-      ascending: true,
-    }
-  );
+  // DATE FILTER
+  if (params.date) {
+    const startOfDay = `${params.date}T00:00:00`;
+
+    const endOfDay = `${params.date}T23:59:59`;
+
+    query = query.gte("departs_at", startOfDay).lte("departs_at", endOfDay);
+  }
+
+  const { data: flights, error } = await query.order("departs_at", {
+    ascending: true,
+  });
 
   console.log(error);
 
@@ -76,10 +62,8 @@ export default async function FlightsPage({
           max-w-7xl
         "
         >
-          {/* Search */}
           <FlightSearch />
 
-          {/* Results */}
           <div className="mt-10">
             <div
               className="
@@ -92,7 +76,7 @@ export default async function FlightsPage({
                 className="
                 text-2xl
                 font-bold
-                "
+              "
               >
                 Available Flights
               </h2>
@@ -102,14 +86,11 @@ export default async function FlightsPage({
                 text-slate-500
               "
               >
-                {flights?.length ?? 0}
-                {" "}Flights
+                {flights?.length ?? 0} Flights
               </span>
             </div>
 
-            {/* No flights */}
-            {flights?.length ===
-              0 && (
+            {flights?.length === 0 && (
               <div
                 className="
                 rounded-[32px]
@@ -134,75 +115,57 @@ export default async function FlightsPage({
                   text-slate-500
                 "
                 >
-                  Try changing
-                  destination or date.
+                  Try changing destination or date.
                 </p>
               </div>
             )}
 
-            {/* Flights */}
             <div className="space-y-5">
-              {flights?.map(
-                (flight) => (
-                  <FlightCard
-                    key={
-                      flight.id
-                    }
-                    id={
-                      flight.id
-                    }
-                    airline={
-                      flight
-                        .flight_no
-                    }
-                    stops="Non-stop"
-                    departureTime={new Date(
-                      flight.departs_at
-                    ).toLocaleTimeString(
-                      [],
-                      {
-                        hour:
-                          "2-digit",
-                        minute:
-                          "2-digit",
-                      }
-                    )}
-                    arrivalTime={new Date(
-                      flight.arrives_at
-                    ).toLocaleTimeString(
-                      [],
-                      {
-                        hour:
-                          "2-digit",
-                        minute:
-                          "2-digit",
-                      }
-                    )}
-                    origin={
-                      flight.origin
-                    }
-                    destination={
-                      flight.destination
-                    }
-                    duration={`${Math.floor(
-                      (
-                        new Date(
-                          flight.arrives_at
-                        ).getTime() -
-                        new Date(
-                          flight.departs_at
-                        ).getTime()
-                      ) /
-                        1000 /
-                        60 /
-                        60
-                    )}h`}
-                    price={
-                      flight.base_price
-                    }
-                  />
-                )
-              )}
+              {flights?.map((flight) => (
+                <FlightCard
+                  key={flight.id}
+                  id={flight.id}
+                  airline={flight.flight_no}
+                  stops="Non-stop"
+                  departureTime={new Date(flight.departs_at).toLocaleTimeString(
+                    [],
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
+                  arrivalTime={new Date(flight.arrives_at).toLocaleTimeString(
+                    [],
+                    {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  )}
+                  origin={flight.origin}
+                  destination={flight.destination}
+                  duration={`${Math.floor(
+                    (new Date(flight.arrives_at).getTime() -
+                      new Date(flight.departs_at).getTime()) /
+                      1000 /
+                      60,
+                  )} min`}
+                  price={flight.base_price}
+                  classOptions={[
+                    {
+                      type: "economy",
+                      price: flight.base_price,
+                    },
+                    {
+                      type: "business",
+                      price: flight.base_price + 1500,
+                    },
+                    {
+                      type: "first",
+                      price: flight.base_price + 3000,
+                    },
+                  ]}
+                />
+              ))}
             </div>
           </div>
         </div>

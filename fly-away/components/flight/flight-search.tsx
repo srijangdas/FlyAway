@@ -78,6 +78,7 @@ export default function FlightSearch() {
       bg-white p-6
       shadow-lg
       dark:bg-slate-900
+      dark:text-white
     "
     >
       <div
@@ -133,6 +134,7 @@ export default function FlightSearch() {
               {airports.map(
                 (airport) => (
                   <option
+                  className="dark:bg-slate-900"
                     key={
                       airport.code
                     }
@@ -200,6 +202,7 @@ export default function FlightSearch() {
               {airports.map(
                 (airport) => (
                   <option
+                  className="dark:bg-slate-900"
                     key={
                       airport.code
                     }
@@ -306,6 +309,7 @@ export default function FlightSearch() {
               {[1, 2, 3, 4, 5].map(
                 (count) => (
                   <option
+                  className="dark:bg-slate-900"
                     key={count}
                     value={count}
                   >
@@ -350,6 +354,7 @@ export default function FlightSearch() {
               className="
               w-full bg-transparent
               outline-none
+              dark:bg-slate-900
             "
             >
               <option value="economy">

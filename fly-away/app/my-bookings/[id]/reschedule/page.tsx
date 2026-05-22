@@ -1,43 +1,143 @@
 "use client";
 
 import Navbar from "@/components/layout/Navbar";
-import {
-  Clock3,
-  Plane,
-} from "lucide-react";
-import { useState } from "react";
-import Link from "next/link";
+
+import { useEffect, useState } from "react";
+
+import { useParams, useRouter } from "next/navigation";
+
+import { createClient } from "@/lib/supabase/client";
+
+import { toast } from "sonner";
+
+import { Booking } from "@/types/booking";
+
+import { Flight } from "@/types/flight";
 
 export default function ReschedulePage() {
-  const [selectedFlight, setSelectedFlight] =
-    useState<number | null>(null);
+  const supabase = createClient();
 
-  const alternativeFlights = [
-    {
-      id: 1,
-      airline: "SkyAir",
-      departure: "10:00 AM",
-      arrival: "05:00 PM",
-      duration: "7h",
-      price: 649,
-    },
-    {
-      id: 2,
-      airline: "Global Wings",
-      departure: "01:30 PM",
-      arrival: "08:30 PM",
-      duration: "7h",
-      price: 720,
-    },
-    {
-      id: 3,
-      airline: "CloudLine",
-      departure: "06:00 PM",
-      arrival: "01:00 AM",
-      duration: "7h",
-      price: 550,
-    },
-  ];
+  const router = useRouter();
+
+  const params = useParams();
+
+  const bookingId = params.id as string;
+
+  const [loading, setLoading] = useState(true);
+
+  const [booking, setBooking] = useState<Booking | null>(null);
+
+  const [currentFlight, setCurrentFlight] = useState<Flight | null>(null);
+
+  const [availableFlights, setAvailableFlights] = useState<Flight[]>([]);
+
+  const [selectedFlight, setSelectedFlight] = useState<string>("");
+
+  async function loadData() {
+    try {
+      // BOOKING
+      const { data: bookingData } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("id", bookingId)
+        .single();
+
+      if (!bookingData) {
+        toast.error("Booking not found");
+
+        return;
+      }
+
+      setBooking(bookingData);
+
+      // CURRENT FLIGHT
+      const { data: flightData } = await supabase
+        .from("flights")
+        .select("*")
+        .eq("id", bookingData.flight_id)
+        .single();
+
+      if (!flightData) return;
+
+      setCurrentFlight(flightData);
+
+      // FIND ALTERNATIVE FLIGHTS
+      const { data: flights } = await supabase
+        .from("flights")
+        .select("*")
+        .eq("origin", flightData.origin)
+        .eq("destination", flightData.destination)
+        .neq("id", flightData.id)
+        .eq("status", "scheduled")
+        .order("departs_at", {
+          ascending: true,
+        });
+
+      setAvailableFlights(flights ?? []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  async function handleReschedule() {
+    if (!selectedFlight || !booking) {
+      toast.error("Select a flight");
+
+      return;
+    }
+
+    try {
+      // free old seat
+      await supabase
+        .from("seats")
+        .update({
+          is_available: true,
+        })
+        .eq("id", booking.seat_id);
+
+      // update booking
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          flight_id: selectedFlight,
+
+          status: "rescheduled",
+        })
+        .eq("id", booking.id);
+
+      if (error) {
+        toast.error("Failed to reschedule");
+
+        return;
+      }
+
+      toast.success("Flight rescheduled");
+
+      router.push(`/my-bookings/${booking.id}`);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Something went wrong");
+    }
+  }
+
+  if (loading) {
+    return (
+      <div
+        className="
+        flex min-h-screen
+        items-center
+        justify-center
+      "
+      >
+        Loading...
+      </div>
+    );
+  }
 
   return (
     <>
@@ -47,13 +147,25 @@ export default function ReschedulePage() {
         className="
         min-h-screen
         bg-slate-50
-        px-4 py-8
+        px-4 py-10
         dark:bg-slate-950
       "
       >
-        <div className="mx-auto max-w-7xl">
-          {/* PAGE HEADER */}
-          <div className="mb-8">
+        <div
+          className="
+          mx-auto
+          max-w-5xl
+        "
+        >
+          <div
+            className="
+            rounded-[32px]
+            bg-white
+            p-8
+            shadow-lg
+            dark:bg-slate-900
+          "
+          >
             <h1
               className="
               text-4xl
@@ -63,288 +175,136 @@ export default function ReschedulePage() {
               Reschedule Flight
             </h1>
 
-            <p
-              className="
-              mt-2 text-slate-500
-              dark:text-slate-400
-            "
-            >
-              Choose another flight
-              for the same route.
-            </p>
-          </div>
-
-          {/* CURRENT BOOKING */}
-          <div
-            className="
-            rounded-[32px]
-            bg-white p-6
-            shadow-lg
-            dark:bg-slate-900
-          "
-          >
-            <h2
-              className="
-              text-2xl
-              font-bold
-            "
-            >
-              Current Booking
-            </h2>
-
-            <div
-              className="
-              mt-5 flex
-              flex-col gap-5
-              lg:flex-row
-              lg:items-center
-              lg:justify-between
-            "
-            >
-              <div>
-                <p
-                  className="
-                  text-lg
-                  font-semibold
-                "
-                >
-                  SkyAir • AI-203
-                </p>
-
-                <p
-                  className="
-                  text-slate-500
-                "
-                >
-                  JFK → LHR
-                </p>
-              </div>
+            {/* CURRENT */}
+            <div className="mt-8">
+              <h2
+                className="
+                text-xl
+                font-semibold
+              "
+              >
+                Current Flight
+              </h2>
 
               <div
                 className="
-                flex items-center
-                gap-6
+                mt-4
+                rounded-2xl
+                border
+                p-5
               "
               >
-                <div>
-                  <h3
-                    className="
-                    text-xl
-                    font-bold
-                  "
-                  >
-                    08:00 AM
-                  </h3>
-
-                  <p>JFK</p>
-                </div>
-
-                <Plane
+                <h3
                   className="
-                  rotate-90
-                  text-slate-400
+                  text-2xl
+                  font-bold
                 "
-                />
+                >
+                  {currentFlight?.flight_no}
+                </h3>
 
-                <div>
-                  <h3
-                    className="
-                    text-xl
-                    font-bold
-                  "
-                  >
-                    03:00 PM
-                  </h3>
+                <p className="mt-2">
+                  {currentFlight?.origin}
+                  {" → "}
+                  {currentFlight?.destination}
+                </p>
 
-                  <p>LHR</p>
-                </div>
+                <p className="mt-2">
+                  Departure:{" "}
+                  {new Date(currentFlight?.departs_at ?? "").toLocaleString()}
+                </p>
               </div>
             </div>
-          </div>
 
-          {/* ALTERNATIVE FLIGHTS */}
-          <div className="mt-10">
-            <h2
-              className="
-              mb-5 text-2xl
-              font-bold
-            "
-            >
-              Available Flights
-            </h2>
+            {/* AVAILABLE */}
+            <div className="mt-10">
+              <h2
+                className="
+                text-xl
+                font-semibold
+              "
+              >
+                Available Flights
+              </h2>
 
-            <div className="space-y-5">
-              {alternativeFlights.map(
-                (flight) => {
-                  const selected =
-                    selectedFlight ===
-                    flight.id;
-
-                  return (
-                    <button
-                      key={flight.id}
-                      onClick={() =>
-                        setSelectedFlight(
-                          flight.id
-                        )
-                      }
-                      className={`
-                        w-full rounded-[32px]
-                        border p-6
+              <div className="mt-5 space-y-4">
+                {availableFlights.map((flight) => (
+                  <button
+                    key={flight.id}
+                    onClick={() => setSelectedFlight(flight.id)}
+                    className={`
+                        w-full
+                        rounded-2xl
+                        border
+                        p-5
                         text-left
-                        transition-all
+                        transition
                         ${
-                          selected
-                            ? "border-blue-600 bg-blue-50 dark:bg-slate-800"
-                            : "border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+                          selectedFlight === flight.id
+                            ? "border-blue-600 bg-blue-50"
+                            : ""
                         }
                       `}
-                    >
-                      <div
-                        className="
-                        flex flex-col
-                        gap-6 lg:flex-row
+                  >
+                    <div
+                      className="
+                        flex
+                        flex-col
+                        gap-3
+                        lg:flex-row
                         lg:items-center
                         lg:justify-between
                       "
-                      >
-                        {/* Airline */}
-                        <div>
-                          <h3
-                            className="
+                    >
+                      <div>
+                        <h3
+                          className="
                             text-xl
                             font-bold
                           "
-                          >
-                            {
-                              flight.airline
-                            }
-                          </h3>
-
-                          <p
-                            className="
-                            text-slate-500
-                          "
-                          >
-                            Non-stop
-                          </p>
-                        </div>
-
-                        {/* Time */}
-                        <div
-                          className="
-                          flex items-center
-                          gap-6
-                        "
                         >
-                          <div>
-                            <h2
-                              className="
-                              text-2xl
-                              font-bold
-                            "
-                            >
-                              {
-                                flight.departure
-                              }
-                            </h2>
+                          {flight.flight_no}
+                        </h3>
 
-                            <p>JFK</p>
-                          </div>
+                        <p>
+                          {flight.origin}→{flight.destination}
+                        </p>
 
-                          <div
-                            className="
-                            flex flex-col
-                            items-center
-                            text-slate-500
-                          "
-                          >
-                            <Clock3
-                              size={18}
-                            />
-
-                            <span>
-                              {
-                                flight.duration
-                              }
-                            </span>
-                          </div>
-
-                          <div>
-                            <h2
-                              className="
-                              text-2xl
-                              font-bold
-                            "
-                            >
-                              {
-                                flight.arrival
-                              }
-                            </h2>
-
-                            <p>LHR</p>
-                          </div>
-                        </div>
-
-                        {/* Price */}
-                        <div
-                          className="
-                          text-left
-                          lg:text-right
-                        "
-                        >
-                          <p
-                            className="
-                            text-sm
-                            text-slate-500
-                          "
-                          >
-                            Difference
-                          </p>
-
-                          <h2
-                            className="
-                            text-2xl
-                            font-bold
-                            text-blue-600
-                          "
-                          >
-                            +₹
-                            {
-                              flight.price
-                            }
-                          </h2>
-                        </div>
+                        <p className="mt-2">
+                          {new Date(flight.departs_at).toLocaleString()}
+                        </p>
                       </div>
-                    </button>
-                  );
-                }
-              )}
-            </div>
-          </div>
 
-          {/* CTA */}
-          <div className="mt-10">
-            <Link
-              href="/my-bookings"
-              className={`
-                inline-flex
-                items-center
-                justify-center
-                rounded-2xl
-                px-8 py-4
-                font-semibold
-                text-white
-                transition
-                ${
-                  selectedFlight
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : "pointer-events-none bg-slate-400"
-                }
-              `}
+                      <h3
+                        className="
+                          text-2xl
+                          font-bold
+                          text-blue-600
+                        "
+                      >
+                        ₹{flight.base_price}
+                      </h3>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={handleReschedule}
+              className="
+              mt-8
+              w-full
+              rounded-2xl
+              bg-blue-600
+              py-5
+              text-lg
+              font-semibold
+              text-white
+            "
             >
               Confirm Reschedule
-            </Link>
+            </button>
           </div>
         </div>
       </main>
