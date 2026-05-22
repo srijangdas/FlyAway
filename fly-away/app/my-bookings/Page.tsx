@@ -20,6 +20,37 @@ export default function MyBookingsPage() {
 
   const [bookings, setBookings] = useState<BookingCard[]>([]);
 
+  function getStatusStyles(status: string) {
+    switch (status) {
+      case "confirmed":
+        return `
+        bg-green-100
+        text-green-700
+        dark:bg-green-900/30
+        dark:text-green-300
+      `;
+
+      case "rescheduled":
+        return `
+        bg-yellow-100
+        text-yellow-700
+        dark:bg-yellow-900/30
+        dark:text-yellow-300
+      `;
+
+      case "cancelled":
+        return `
+        bg-red-100
+        text-red-700
+        dark:bg-red-900/30
+        dark:text-red-300
+      `;
+
+      default:
+        return "";
+    }
+  }
+
   useEffect(() => {
     async function loadBookings() {
       try {
@@ -230,14 +261,13 @@ export default function MyBookingsPage() {
                         </h2>
 
                         <span
-                          className="
-                            rounded-full
-                            bg-green-100
-                            px-3 py-1
-                            text-sm
-                            font-medium
-                            text-green-700
-                          "
+                          className={`
+                                      rounded-full
+                                      px-3 py-1
+                                      text-sm
+                                      font-medium
+                                      ${getStatusStyles(booking.status)}
+                                    `}
                         >
                           {booking.status}
                         </span>
@@ -293,7 +323,7 @@ export default function MyBookingsPage() {
                         "
                       >
                         <Link
-                          href={`/booking/confirmation?pnr=${booking.pnr_code}`}
+                          href={`/my-bookings/${booking.id}`}
                           className="
                             rounded-2xl
                             bg-blue-600

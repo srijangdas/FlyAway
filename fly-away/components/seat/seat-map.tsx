@@ -9,6 +9,7 @@ import SeatCard from "./seat-card";
 import { createClient } from "@/lib/supabase/client";
 
 import type { Seat } from "@/types/seat";
+
 import type { SeatMapProps } from "@/types/ui";
 
 import { toast } from "sonner";
@@ -34,13 +35,11 @@ export default function SeatMap({
   // FETCH SEATS
   useEffect(() => {
     async function fetchSeats() {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("seats")
         .select("*")
         .eq("flight_id", flightId)
         .order("seat_number");
-
-      console.log(error);
 
       setSeats(data ?? []);
 
@@ -56,7 +55,9 @@ export default function SeatMap({
         "postgres_changes",
         {
           event: "*",
+
           schema: "public",
+
           table: "seats",
 
           filter: `flight_id=eq.${flightId}`,
@@ -69,6 +70,17 @@ export default function SeatMap({
               seat.id === updatedSeat.id ? updatedSeat : seat,
             ),
           );
+
+          // selected seat got booked
+          if (!updatedSeat.is_available) {
+            const selected = selectedSeats.some((s) => s.id === updatedSeat.id);
+
+            if (selected) {
+              setSelectedSeats([]);
+
+              toast.error("Selected seat was booked by another user");
+            }
+          }
         },
       )
       .subscribe();
@@ -117,7 +129,8 @@ export default function SeatMap({
     return (
       <div
         className="
-        grid min-w-[420px]
+        grid
+        min-w-[420px]
         grid-cols-6
         gap-3
       "
@@ -135,7 +148,7 @@ export default function SeatMap({
   }
 
   async function handleContinue() {
-    // NORMAL BOOKING FLOW
+    // NORMAL FLOW
     if (!isReschedule) {
       router.push(
         `/booking?flightId=${flightId}&seatId=${selectedSeats[0]?.id}&passengers=${passengers}`,
@@ -152,7 +165,6 @@ export default function SeatMap({
         return;
       }
 
-      // BOOKING
       const { data: booking } = await supabase
         .from("bookings")
         .select("*")
@@ -174,10 +186,39 @@ export default function SeatMap({
       );
 
       if (lockError || !seatLocked) {
-        toast.error("Seat already booked");
+        toast.error("Seat already booked. Please choose another seat.");
 
         return;
       }
+
+      // GET FLIGHTS
+      const { data: oldFlight } = await supabase
+        .from("flights")
+        .select("*")
+        .eq("id", booking.flight_id)
+        .single();
+
+      const { data: newFlight } = await supabase
+        .from("flights")
+        .select("*")
+        .eq("id", flightId)
+        .single();
+
+      const fee = Math.max(
+        0,
+        (newFlight?.base_price ?? 0) - (oldFlight?.base_price ?? 0),
+      );
+
+      // INSERT RESCHEDULE
+      await supabase.from("reschedules").insert({
+        booking_id: booking.id,
+
+        old_flight_id: booking.flight_id,
+
+        new_flight_id: flightId,
+
+        fee_charged: fee,
+      });
 
       // FREE OLD SEAT
       await supabase
@@ -195,6 +236,8 @@ export default function SeatMap({
 
           seat_id: selectedSeats[0].id,
 
+          total_price: booking.total_price + fee,
+
           status: "rescheduled",
         })
         .eq("id", bookingId);
@@ -205,7 +248,9 @@ export default function SeatMap({
         return;
       }
 
-      toast.success("Flight rescheduled!");
+      toast.success(
+        fee > 0 ? `Flight rescheduled (+₹${fee})` : "Flight rescheduled!",
+      );
 
       router.push(`/my-bookings/${bookingId}`);
     } catch (error) {
@@ -230,7 +275,8 @@ export default function SeatMap({
       <div
         className="
         rounded-[32px]
-        bg-white p-6
+        bg-white
+        p-6
         shadow-lg
         dark:bg-slate-900
       "
@@ -238,7 +284,8 @@ export default function SeatMap({
         <div
           className="
           flex flex-col
-          gap-5 md:flex-row
+          gap-5
+          md:flex-row
           md:items-center
           md:justify-between
         "
@@ -263,173 +310,95 @@ export default function SeatMap({
             </p>
           </div>
 
-          {/* PASSENGERS */}
-          <div>
-            <label
-              className="
-              mb-2 block
-              text-sm
-              font-medium
-            "
-            >
-              Passengers
-            </label>
+          {!isReschedule && (
+            <div>
+              <label
+                className="
+                mb-2 block
+                text-sm
+                font-medium
+              "
+              >
+                Passengers
+              </label>
 
-            <select
-              title="pass"
-              value={passengers}
-              onChange={(e) => {
-                setPassengers(Number(e.target.value));
+              <select
+                title="pass"
+                value={passengers}
+                onChange={(e) => {
+                  setPassengers(Number(e.target.value));
 
-                setSelectedSeats([]);
-              }}
-              className="
-              rounded-2xl
-              border px-4 py-3
-              dark:bg-slate-900
-            "
-            >
-              {[1, 2, 3, 4, 5].map((num) => (
-                <option key={num} value={num}>
-                  {num}
-                </option>
-              ))}
-            </select>
-          </div>
+                  setSelectedSeats([]);
+                }}
+                className="
+                rounded-2xl
+                border
+                px-4 py-3
+                dark:bg-slate-900
+              "
+              >
+                {[1, 2, 3, 4, 5].map((num) => (
+                  <option key={num} value={num}>
+                    {num}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* LEGEND */}
-        <div
-          className="
-          mt-6 flex
-          flex-wrap gap-4
-          text-sm
-        "
-        >
-          <p>🟢 Economy</p>
-
-          <p>🟣 Business</p>
-
-          <p>🟡 First</p>
-
-          <p>🔴 Occupied</p>
-
-          <p>🔵 Selected</p>
-        </div>
-
-        {/* SCROLLABLE CABIN */}
-        <div
-          className="
-          mt-8 overflow-x-auto
-        "
-        >
-          {/* FIRST */}
+        <div className="mt-8 overflow-x-auto">
           <section>
-            <h3
-              className="
-              mb-4 text-xl
-              font-bold
-              text-yellow-600
-            "
-            >
+            <h3 className="mb-4 text-xl font-bold text-yellow-600">
               First Class
             </h3>
-
             {renderSeats(groupedSeats.first)}
           </section>
 
-          {/* BUSINESS */}
           <section className="mt-10">
-            <h3
-              className="
-              mb-4 text-xl
-              font-bold
-              text-purple-600
-            "
-            >
-              Business
-            </h3>
-
+            <h3 className="mb-4 text-xl font-bold text-purple-600">Business</h3>
             {renderSeats(groupedSeats.business)}
           </section>
 
-          {/* ECONOMY */}
           <section className="mt-10">
-            <h3
-              className="
-              mb-4 text-xl
-              font-bold
-              text-green-600
-            "
-            >
-              Economy
-            </h3>
-
+            <h3 className="mb-4 text-xl font-bold text-green-600">Economy</h3>
             {renderSeats(groupedSeats.economy)}
           </section>
         </div>
       </div>
 
-      {/* RIGHT SUMMARY */}
+      {/* RIGHT */}
       <div
         className="
-        h-fit rounded-[32px]
-        bg-white p-6
+        h-fit
+        rounded-[32px]
+        bg-white
+        p-6
         shadow-lg
         dark:bg-slate-900
-        lg:sticky lg:top-24
+        lg:sticky
+        lg:top-24
       "
       >
-        <h2
-          className="
-          text-2xl
-          font-bold
-        "
-        >
-          Booking Summary
-        </h2>
+        <h2 className="text-2xl font-bold">Booking Summary</h2>
 
-        <div
-          className="
-          mt-6 space-y-4
-        "
-        >
-          <div
-            className="
-            flex justify-between
-          "
-          >
+        <div className="mt-6 space-y-4">
+          <div className="flex justify-between">
             <span>Passengers</span>
 
             <span>{passengers}</span>
           </div>
 
-          <div
-            className="
-            flex justify-between
-          "
-          >
+          <div className="flex justify-between">
             <span>Selected Seats</span>
 
             <span>{selectedSeats.length}</span>
           </div>
 
           <div>
-            <p
-              className="
-              mb-2
-              text-sm
-              text-slate-500
-            "
-            >
-              Seats
-            </p>
+            <p className="mb-2 text-sm text-slate-500">Seats</p>
 
-            <div
-              className="
-              flex flex-wrap gap-2
-            "
-            >
+            <div className="flex flex-wrap gap-2">
               {selectedSeats.map((seat) => (
                 <div
                   key={seat.id}
@@ -448,18 +417,8 @@ export default function SeatMap({
             </div>
           </div>
 
-          <div
-            className="
-            border-t pt-5
-          "
-          >
-            <div
-              className="
-              flex justify-between
-              text-xl
-              font-bold
-            "
-            >
+          <div className="border-t pt-5">
+            <div className="flex justify-between text-xl font-bold">
               <span>Total</span>
 
               <span>₹{total}</span>
@@ -470,16 +429,18 @@ export default function SeatMap({
             disabled={selectedSeats.length !== passengers}
             onClick={handleContinue}
             className="
-              mt-4 w-full
-              rounded-2xl
-              bg-blue-600 py-5
-              font-semibold
-              text-white
-              transition
-              hover:bg-blue-700
-              disabled:cursor-not-allowed
-              disabled:opacity-50
-"
+            mt-4
+            w-full
+            rounded-2xl
+            bg-blue-600
+            py-5
+            font-semibold
+            text-white
+            transition
+            hover:bg-blue-700
+            disabled:cursor-not-allowed
+            disabled:opacity-50
+          "
           >
             {isReschedule ? "Confirm Reschedule" : "Continue Booking"}
           </button>

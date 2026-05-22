@@ -7,6 +7,12 @@ import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { createClient } from "@/lib/supabase/client";
+import { Booking } from "@/types/booking";
+import { Flight } from "@/types/flight";
+import { Seat } from "@/types/seat";
+import { Passenger } from "@/types/passenger";
+import { toast } from "sonner";
+import router from "next/router";
 
 export default function BookingDetailsPage() {
   const supabase = createClient();
@@ -15,15 +21,36 @@ export default function BookingDetailsPage() {
 
   const id = params.id as string;
 
-  const [booking, setBooking] = useState<any>(null);
+  const [booking, setBooking] = useState<Booking | null>(null);
 
-  const [flight, setFlight] = useState<any>(null);
+  const [flight, setFlight] = useState<Flight | null>(null);
 
-  const [seat, setSeat] = useState<any>(null);
+  const [seat, setSeat] = useState<Seat | null>(null);
 
-  const [passengers, setPassengers] = useState<any[]>([]);
+  const [passengers, setPassengers] = useState<Passenger[]>([]);
 
   const [loading, setLoading] = useState(true);
+  async function handleCancel() {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this booking?",
+    );
+
+    if (!confirmed) return;
+
+    const { error } = await supabase.rpc("cancel_booking", {
+      p_booking_id: booking?.id,
+    });
+
+    if (error) {
+      toast.error(error.message);
+
+      return;
+    }
+
+    toast.success("Booking cancelled");
+
+    router.push("/my-bookings");
+  }
 
   useEffect(() => {
     async function loadTicket() {
@@ -231,6 +258,18 @@ export default function BookingDetailsPage() {
 
               <span>₹{booking.total_price}</span>
             </div>
+            <button
+              onClick={handleCancel}
+              className="
+                        rounded-2xl
+                        bg-red-600
+                        px-5 py-3
+                        my-5
+                        text-white
+                      "
+            >
+              Cancel Booking
+            </button>
           </div>
         </div>
       </main>
