@@ -13,7 +13,12 @@ import type { SeatMapProps } from "@/types/ui";
 
 import { toast } from "sonner";
 
-export default function SeatMap({ flightId, basePrice }: SeatMapProps) {
+export default function SeatMap({
+  flightId,
+  basePrice,
+  isReschedule = false,
+  bookingId,
+}: SeatMapProps) {
   const router = useRouter();
 
   const supabase = createClient();
@@ -46,13 +51,15 @@ export default function SeatMap({ flightId, basePrice }: SeatMapProps) {
 
     // REALTIME
     const channel = supabase
-      .channel("seat-updates")
+      .channel(`seat-updates-${flightId}`)
       .on(
         "postgres_changes",
         {
           event: "*",
           schema: "public",
           table: "seats",
+
+          filter: `flight_id=eq.${flightId}`,
         },
         (payload) => {
           const updatedSeat = payload.new as Seat;
@@ -125,6 +132,87 @@ export default function SeatMap({ flightId, basePrice }: SeatMapProps) {
         ))}
       </div>
     );
+  }
+
+  async function handleContinue() {
+    // NORMAL BOOKING FLOW
+    if (!isReschedule) {
+      router.push(
+        `/booking?flightId=${flightId}&seatId=${selectedSeats[0]?.id}&passengers=${passengers}`,
+      );
+
+      return;
+    }
+
+    // RESCHEDULE FLOW
+    try {
+      if (!bookingId) {
+        toast.error("Booking missing");
+
+        return;
+      }
+
+      // BOOKING
+      const { data: booking } = await supabase
+        .from("bookings")
+        .select("*")
+        .eq("id", bookingId)
+        .single();
+
+      if (!booking) {
+        toast.error("Booking not found");
+
+        return;
+      }
+
+      // LOCK NEW SEAT
+      const { data: seatLocked, error: lockError } = await supabase.rpc(
+        "lock_seat",
+        {
+          p_seat_id: selectedSeats[0].id,
+        },
+      );
+
+      if (lockError || !seatLocked) {
+        toast.error("Seat already booked");
+
+        return;
+      }
+
+      // FREE OLD SEAT
+      await supabase
+        .from("seats")
+        .update({
+          is_available: true,
+        })
+        .eq("id", booking.seat_id);
+
+      // UPDATE BOOKING
+      const { error: bookingError } = await supabase
+        .from("bookings")
+        .update({
+          flight_id: flightId,
+
+          seat_id: selectedSeats[0].id,
+
+          status: "rescheduled",
+        })
+        .eq("id", bookingId);
+
+      if (bookingError) {
+        toast.error("Reschedule failed");
+
+        return;
+      }
+
+      toast.success("Flight rescheduled!");
+
+      router.push(`/my-bookings/${bookingId}`);
+    } catch (error) {
+      console.error(error);
+
+      toast.error("Something went wrong");
+    }
   }
 
   if (loading) {
@@ -380,22 +468,20 @@ export default function SeatMap({ flightId, basePrice }: SeatMapProps) {
 
           <button
             disabled={selectedSeats.length !== passengers}
-            onClick={() =>
-              router.push(
-                `/booking?flightId=${flightId}&seatId=${selectedSeats[0]?.id}&passengers=${passengers}`,
-              )
-            }
+            onClick={handleContinue}
             className="
-            mt-4 w-full
-            rounded-2xl
-            bg-blue-600 py-5
-            font-semibold
-            text-white
-            disabled:cursor-not-allowed
-            disabled:opacity-50
-          "
+              mt-4 w-full
+              rounded-2xl
+              bg-blue-600 py-5
+              font-semibold
+              text-white
+              transition
+              hover:bg-blue-700
+              disabled:cursor-not-allowed
+              disabled:opacity-50
+"
           >
-            Continue Booking
+            {isReschedule ? "Confirm Reschedule" : "Continue Booking"}
           </button>
         </div>
       </div>

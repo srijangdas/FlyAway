@@ -68,87 +68,35 @@ export default function PaymentPage() {
     try {
       setLoading(true);
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const response = await fetch("/api/book-flight", {
+        method: "POST",
 
-      if (!user) {
-        toast.error("Please login");
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-        return;
-      }
+        body: JSON.stringify({
+          flightId,
 
-      // CHECK SEAT STILL AVAILABLE
-      const { data: latestSeat } = await supabase
-        .from("seats")
-        .select("*")
-        .eq("id", seatId)
-        .single();
+          seatId,
 
-      if (!latestSeat?.is_available) {
-        toast.error("Seat already booked");
-
-        router.push(`/flights/${flightId}`);
-
-        return;
-      }
-
-      // GENERATE PNR
-      const pnr = Math.random().toString(36).substring(2, 8).toUpperCase();
-
-      const totalPrice = flight.base_price + seat.extra_fee;
-
-      // CREATE BOOKING
-      const { data: booking, error: bookingError } = await supabase
-        .from("bookings")
-        .insert({
-          user_id: user.id,
-
-          flight_id: flightId,
-
-          seat_id: seatId,
-
-          total_price: totalPrice,
-
-          pnr_code: pnr,
-        })
-        .select()
-        .single();
-
-      if (bookingError) {
-        console.log(bookingError);
-
-        toast.error("Booking failed");
-
-        return;
-      }
-
-      // SAVE PASSENGER
-      await supabase.from("passengers").insert({
-        booking_id: booking.id,
-
-        full_name: fullName,
-
-        passport_no: passportNo,
-
-        nationality: nationality,
-
-        dob: dob,
+          passengerData: JSON.parse(searchParams.get("passengerData") ?? "[]"),
+        }),
       });
 
-      // LOCK SEAT
-      await supabase
-        .from("seats")
-        .update({
-          is_available: false,
-        })
-        .eq("id", seatId);
+      const result = await response.json();
+
+      if (!response.ok) {
+        toast.error(result.error);
+
+        return;
+      }
 
       toast.success("Payment Successful");
 
-      router.push(`/booking/confirmation?pnr=${pnr}`);
+      router.push(`/my-bookings/${result.bookingId}`);
     } catch (error) {
-      console.log(error);
+      console.error(error);
 
       toast.error("Something went wrong");
     } finally {

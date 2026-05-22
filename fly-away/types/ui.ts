@@ -11,6 +11,9 @@ export type SeatCardProps = {
 export type SeatMapProps = {
   flightId: string;
   basePrice: number;
+
+  isReschedule?: boolean;
+  bookingId?: string;
 };
 
 export type FlightCardClassOption = {
