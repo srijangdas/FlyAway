@@ -9,6 +9,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { createClient } from "@/lib/supabase/client";
+import { useFlightStore } from "@/store/flight-store";
 import { Seat } from "@/types/seat";
 
 export default function PaymentPage() {
@@ -18,17 +19,13 @@ export default function PaymentPage() {
 
   const searchParams = useSearchParams();
 
-  const flightId = searchParams.get("flightId");
+  const selectedFlight = useFlightStore((state) => state.selectedFlight);
+  const selectedSeats = useFlightStore((state) => state.selectedSeats);
+  const passengerForms = useFlightStore((state) => state.passengerFormData);
+  const resetBooking = useFlightStore((state) => state.resetBooking);
 
-  const seatId = searchParams.get("seatId");
-
-  const fullName = searchParams.get("fullName");
-
-  const passportNo = searchParams.get("passportNo");
-
-  const nationality = searchParams.get("nationality");
-
-  const dob = searchParams.get("dob");
+  const flightId = searchParams.get("flightId") ?? selectedFlight?.id;
+  const seatId = searchParams.get("seatId") ?? selectedSeats[0]?.id;
 
   const [loading, setLoading] = useState(false);
 
@@ -62,7 +59,7 @@ export default function PaymentPage() {
     }
 
     loadData();
-  }, []);
+  }, [flightId, seatId, supabase]);
 
   async function handlePayment() {
     try {
@@ -77,10 +74,8 @@ export default function PaymentPage() {
 
         body: JSON.stringify({
           flightId,
-
           seatId,
-
-          passengerData: JSON.parse(searchParams.get("passengerData") ?? "[]"),
+          passengerData: passengerForms,
         }),
       });
 
@@ -94,6 +89,7 @@ export default function PaymentPage() {
 
       toast.success("Payment Successful");
 
+      resetBooking();
       router.push(`/my-bookings/${result.bookingId}`);
     } catch (error) {
       console.error(error);

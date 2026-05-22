@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/store/user-store";
 
 import type { Booking } from "@/types/booking";
 import type { Flight } from "@/types/flight";
@@ -19,6 +20,7 @@ export default function MyBookingsPage() {
   const [loading, setLoading] = useState(true);
 
   const [bookings, setBookings] = useState<BookingCard[]>([]);
+  const setCachedBookings = useUserStore((state) => state.setCachedBookings);
 
   function getStatusStyles(status: string) {
     switch (status) {
@@ -105,6 +107,7 @@ export default function MyBookingsPage() {
         );
 
         setBookings(enrichedBookings);
+        setCachedBookings(enrichedBookings);
       } catch (error) {
         console.error(error);
       } finally {

@@ -1,51 +1,47 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { LogOut, Moon, Sun }from "lucide-react";
+import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import { logout } from "@/app/actions/auth";
 import LogoutButton from "./LogoutButton";
+import { useUserStore } from "@/store/user-store";
 
 export default function Navbar() {
-  const supabase =
-    createClient();
+  const supabase = createClient();
 
-  const [user, setUser] =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useState<any>(null);
+  const user = useUserStore((state) => state.user);
+  const setUser = useUserStore((state) => state.setUser);
+  const setSessionToken = useUserStore((state) => state.setSessionToken);
 
-  const { theme, setTheme } =
-    useTheme();
+  const { theme, setTheme } = useTheme();
 
   useEffect(() => {
     async function getUser() {
       const {
         data: { user },
-      } =
-        await supabase.auth.getUser();
+      } = await supabase.auth.getUser();
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
 
       setUser(user);
+      setSessionToken(session?.access_token ?? null);
     }
 
     getUser();
 
-    const {
-      data: listener,
-    } =
-      supabase.auth.onAuthStateChange(
-        (_, session) => {
-          setUser(
-            session?.user ?? null
-          );
-        }
-      );
+    const { data: listener } = supabase.auth.onAuthStateChange((_, session) => {
+      setUser(session?.user ?? null);
+      setSessionToken(session?.access_token ?? null);
+    });
 
     return () => {
       listener.subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [supabase, setSessionToken, setUser]);
 
   return (
     <header
@@ -85,21 +81,11 @@ export default function Navbar() {
           md:flex
         "
         >
-          <Link href="/">
-            Home
-          </Link>
+          <Link href="/">Home</Link>
 
-          <Link href="/flights">
-            Flights
-          </Link>
+          <Link href="/flights">Flights</Link>
 
-          {user && (
-            <Link
-              href="/my-bookings"
-            >
-              My Bookings
-            </Link>
-          )}
+          {user && <Link href="/my-bookings">My Bookings</Link>}
         </nav>
 
         {/* Right Side */}
@@ -111,23 +97,13 @@ export default function Navbar() {
         >
           {/* Theme Toggle */}
           <button
-            onClick={() =>
-              setTheme(
-                theme === "dark"
-                  ? "light"
-                  : "dark"
-              )
-            }
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
             className="
             rounded-full border
             p-3
           "
           >
-            {theme === "dark" ? (
-              <Sun size={18} />
-            ) : (
-              <Moon size={18} />
-            )}
+            {theme === "dark" ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           {!user ? (
@@ -157,7 +133,7 @@ export default function Navbar() {
               </Link>
             </>
           ) : (
-            <LogoutButton/>
+            <LogoutButton />
           )}
         </div>
       </div>

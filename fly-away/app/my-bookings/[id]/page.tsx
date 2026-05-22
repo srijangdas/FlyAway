@@ -13,6 +13,7 @@ import { Seat } from "@/types/seat";
 import { Passenger } from "@/types/passenger";
 import { toast } from "sonner";
 import router from "next/router";
+import { useFlightStore } from "@/store/flight-store";
 
 export default function BookingDetailsPage() {
   const supabase = createClient();
@@ -30,6 +31,8 @@ export default function BookingDetailsPage() {
   const [passengers, setPassengers] = useState<Passenger[]>([]);
 
   const [loading, setLoading] = useState(true);
+  const resetBooking = useFlightStore((state) => state.resetBooking);
+
   async function handleCancel() {
     const confirmed = window.confirm(
       "Are you sure you want to cancel this booking?",
@@ -47,6 +50,7 @@ export default function BookingDetailsPage() {
       return;
     }
 
+    resetBooking();
     toast.success("Booking cancelled");
 
     router.push("/my-bookings");

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Clock3, Plane } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { useFlightStore } from "@/store/flight-store";
 
 import type { FlightCardProps } from "@/types/ui";
 
@@ -23,6 +24,8 @@ export default function FlightCard({
   const router = useRouter();
 
   const supabase = createClient();
+  const setSelectedFlight = useFlightStore((state) => state.setSelectedFlight);
+  const setBookingStep = useFlightStore((state) => state.setBookingStep);
 
   async function handleBooking() {
     const {
@@ -38,6 +41,18 @@ export default function FlightCard({
 
       return;
     }
+
+    setSelectedFlight({
+      id,
+      flight_no: airline,
+      origin,
+      destination,
+      base_price: classOptions[0]?.price ?? 0,
+      departs_at: "",
+      arrives_at: "",
+    });
+
+    setBookingStep("selectSeat");
 
     router.push(`/flights/${id}`);
   }

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import SeatCard from "./seat-card";
 
 import { createClient } from "@/lib/supabase/client";
+import { useFlightStore } from "@/store/flight-store";
 
 import type { Seat } from "@/types/seat";
 
@@ -26,11 +27,16 @@ export default function SeatMap({
 
   const [loading, setLoading] = useState(true);
 
-  const [passengers, setPassengers] = useState(1);
-
   const [seats, setSeats] = useState<Seat[]>([]);
 
-  const [selectedSeats, setSelectedSeats] = useState<Seat[]>([]);
+  const searchQuery = useFlightStore((state) => state.searchQuery);
+  const selectedSeats = useFlightStore((state) => state.selectedSeats);
+  const toggleSeatSelection = useFlightStore(
+    (state) => state.toggleSeatSelection,
+  );
+  const setSelectedSeats = useFlightStore((state) => state.setSelectedSeats);
+  const setSearchQuery = useFlightStore((state) => state.setSearchQuery);
+  const setBookingStep = useFlightStore((state) => state.setBookingStep);
 
   // FETCH SEATS
   useEffect(() => {
@@ -73,7 +79,9 @@ export default function SeatMap({
 
           // selected seat got booked
           if (!updatedSeat.is_available) {
-            const selected = selectedSeats.some((s) => s.id === updatedSeat.id);
+            const selected = useFlightStore
+              .getState()
+              .selectedSeats.some((s) => s.id === updatedSeat.id);
 
             if (selected) {
               setSelectedSeats([]);
@@ -88,7 +96,7 @@ export default function SeatMap({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [flightId]);
+  }, [flightId, setSelectedSeats]);
 
   // GROUP SEATS
   const groupedSeats = useMemo(() => {
@@ -102,27 +110,28 @@ export default function SeatMap({
   }, [seats]);
 
   // SELECT SEAT
+  const passengerCount = searchQuery.passengers;
+
   function toggleSeat(seat: Seat) {
     const exists = selectedSeats.find((s) => s.id === seat.id);
 
     if (exists) {
-      setSelectedSeats((current) => current.filter((s) => s.id !== seat.id));
+      toggleSeatSelection(seat);
+      return;
+    }
+
+    if (selectedSeats.length >= passengerCount) {
+      toast.error(`Only ${passengerCount} seat(s) allowed`);
 
       return;
     }
 
-    if (selectedSeats.length >= passengers) {
-      toast.error(`Only ${passengers} seat(s) allowed`);
-
-      return;
-    }
-
-    setSelectedSeats((current) => [...current, seat]);
+    toggleSeatSelection(seat);
   }
 
   // TOTAL
   const total =
-    passengers * basePrice +
+    passengerCount * basePrice +
     selectedSeats.reduce((sum, seat) => sum + seat.extra_fee, 0);
 
   function renderSeats(seatGroup: Seat[]) {
@@ -151,7 +160,7 @@ export default function SeatMap({
     // NORMAL FLOW
     if (!isReschedule) {
       router.push(
-        `/booking?flightId=${flightId}&seatId=${selectedSeats[0]?.id}&passengers=${passengers}`,
+        `/booking?flightId=${flightId}&seatId=${selectedSeats[0]?.id}&passengers=${passengerCount}`,
       );
 
       return;
@@ -324,9 +333,9 @@ export default function SeatMap({
 
               <select
                 title="pass"
-                value={passengers}
+                value={searchQuery.passengers}
                 onChange={(e) => {
-                  setPassengers(Number(e.target.value));
+                  setSearchQuery({ passengers: Number(e.target.value) });
 
                   setSelectedSeats([]);
                 }}
@@ -386,7 +395,7 @@ export default function SeatMap({
           <div className="flex justify-between">
             <span>Passengers</span>
 
-            <span>{passengers}</span>
+            <span>{passengerCount}</span>
           </div>
 
           <div className="flex justify-between">
@@ -426,7 +435,7 @@ export default function SeatMap({
           </div>
 
           <button
-            disabled={selectedSeats.length !== passengers}
+            disabled={selectedSeats.length !== passengerCount}
             onClick={handleContinue}
             className="
             mt-4

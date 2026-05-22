@@ -4,10 +4,11 @@ import Navbar from "@/components/layout/Navbar";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { useState } from "react";
+import { useEffect } from "react";
 
 import { toast } from "sonner";
 
+import { useFlightStore } from "@/store/flight-store";
 import type { PassengerForm } from "@/types/passenger";
 
 export default function BookingPage() {
@@ -15,25 +16,37 @@ export default function BookingPage() {
 
   const searchParams = useSearchParams();
 
-  const flightId = searchParams?.get("flightId") ?? "";
-
-  const seatId = searchParams?.get("seatId") ?? "";
-
-  const passengers = Number(searchParams?.get("passengers") ?? "1");
-
-  const [passengerForms, setPassengerForms] = useState<PassengerForm[]>(
-    Array.from(
-      {
-        length: passengers,
-      },
-      () => ({
-        fullName: "",
-        passportNo: "",
-        nationality: "",
-        dob: "",
-      }),
-    ),
+  const searchQuery = useFlightStore((state) => state.searchQuery);
+  const selectedFlight = useFlightStore((state) => state.selectedFlight);
+  const selectedSeats = useFlightStore((state) => state.selectedSeats);
+  const passengerForms = useFlightStore((state) => state.passengerFormData);
+  const setPassengerFormData = useFlightStore(
+    (state) => state.setPassengerFormData,
   );
+  const setBookingStep = useFlightStore((state) => state.setBookingStep);
+
+  const flightId = searchParams?.get("flightId") ?? selectedFlight?.id ?? "";
+  const seatId = searchParams?.get("seatId") ?? selectedSeats[0]?.id ?? "";
+  const passengers = Number(
+    searchParams?.get("passengers") ?? searchQuery.passengers ?? 1,
+  );
+
+  useEffect(() => {
+    const defaults: PassengerForm[] = Array.from(
+      { length: passengers },
+      (_, index) =>
+        passengerForms[index] ?? {
+          fullName: "",
+          passportNo: "",
+          nationality: "",
+          dob: "",
+        },
+    );
+
+    if (passengerForms.length !== passengers) {
+      setPassengerFormData(defaults);
+    }
+  }, [passengers, passengerForms, setPassengerFormData]);
 
   function updatePassenger(
     index: number,
@@ -47,7 +60,7 @@ export default function BookingPage() {
       [field]: value,
     };
 
-    setPassengerForms(updated);
+    setPassengerFormData(updated);
   }
 
   function handleContinue(e: React.FormEvent) {
@@ -81,17 +94,9 @@ export default function BookingPage() {
       }
     }
 
-    const params = new URLSearchParams();
+    setBookingStep("payment");
 
-    params.set("flightId", flightId);
-
-    params.set("seatId", seatId);
-
-    params.set("passengers", passengers.toString());
-
-    params.set("passengerData", JSON.stringify(passengerForms));
-
-    router.push(`/payment?${params.toString()}`);
+    router.push(`/payment?flightId=${flightId}&seatId=${seatId}`);
   }
 
   return (

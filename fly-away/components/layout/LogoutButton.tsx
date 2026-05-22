@@ -1,22 +1,29 @@
 "use client";
 
 import { logout } from "@/app/actions/auth";
-import Link from "next/link";
+import { useFlightStore } from "@/store/flight-store";
+import { useUserStore } from "@/store/user-store";
 
 export default function LogoutButton() {
+  const resetFlightStore = useFlightStore.getState().resetStore;
+  const resetUserStore = useUserStore.getState().resetStore;
+
+  async function handleLogout() {
+    resetFlightStore();
+    resetUserStore();
+    await logout();
+  }
+
   return (
-    <Link href={"/"}>
     <button
-      onClick={() => logout()}
+      onClick={handleLogout}
       className="rounded-2xl
               bg-red-500
               px-5 py-3
               font-semibold
               text-white"
-              
     >
       Logout
     </button>
-    </Link>
   );
 }

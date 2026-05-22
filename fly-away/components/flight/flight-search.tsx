@@ -1,74 +1,39 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-import {
-  Calendar,
-  MapPin,
-  Search,
-  Users,
-} from "lucide-react";
+import { Calendar, MapPin, Search, Users } from "lucide-react";
 
-import { airports }
-from "@/constants/airports";
+import { airports } from "@/constants/airports";
+import { useFlightStore } from "@/store/flight-store";
 
 export default function FlightSearch() {
   const router = useRouter();
 
-  const [from, setFrom] =
-    useState("");
-
-  const [to, setTo] =
-    useState("");
-
-  const [date, setDate] =
-    useState("");
-
-  const [passengers, setPassengers] =
-    useState("1");
-
-  const [flightClass, setFlightClass] =
-    useState("economy");
+  const searchQuery = useFlightStore((state) => state.searchQuery);
+  const setSearchQuery = useFlightStore((state) => state.setSearchQuery);
+  const setBookingStep = useFlightStore((state) => state.setBookingStep);
 
   function handleSearch() {
-    if (!from || !to) {
+    if (!searchQuery.from || !searchQuery.to) {
       return;
     }
 
-    const params =
-      new URLSearchParams();
+    setBookingStep("search");
 
-    params.set(
-      "from",
-      from
-    );
+    const params = new URLSearchParams();
 
-    params.set(
-      "to",
-      to
-    );
+    params.set("from", searchQuery.from);
+    params.set("to", searchQuery.to);
 
-    if (date) {
-      params.set(
-        "date",
-        date
-      );
+    if (searchQuery.date) {
+      params.set("date", searchQuery.date);
     }
 
-    params.set(
-      "passengers",
-      passengers
-    );
+    params.set("passengers", searchQuery.passengers.toString());
+    params.set("class", searchQuery.flightClass);
 
-    params.set(
-      "class",
-      flightClass
-    );
-
-    router.push(
-      `/flights?${params.toString()}`
-    );
+    router.push(`/flights?${params.toString()}`);
   }
 
   return (
@@ -115,43 +80,25 @@ export default function FlightSearch() {
             />
 
             <select
-            title="city"
-              value={from}
-              onChange={(e) =>
-                setFrom(
-                  e.target.value
-                )
-              }
+              title="city"
+              value={searchQuery.from}
+              onChange={(e) => setSearchQuery({ from: e.target.value })}
               className="
               w-full bg-transparent
               outline-none
             "
             >
-              <option value="">
-                Select City
-              </option>
+              <option value="">Select City</option>
 
-              {airports.map(
-                (airport) => (
-                  <option
+              {airports.map((airport) => (
+                <option
                   className="dark:bg-slate-900"
-                    key={
-                      airport.code
-                    }
-                    value={
-                      airport.code
-                    }
-                  >
-                    {airport.city}
-                    {" "}
-                    (
-                    {
-                      airport.code
-                    }
-                    )
-                  </option>
-                )
-              )}
+                  key={airport.code}
+                  value={airport.code}
+                >
+                  {airport.city} ({airport.code})
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -183,43 +130,25 @@ export default function FlightSearch() {
             />
 
             <select
-            title="city"
-              value={to}
-              onChange={(e) =>
-                setTo(
-                  e.target.value
-                )
-              }
+              title="city"
+              value={searchQuery.to}
+              onChange={(e) => setSearchQuery({ to: e.target.value })}
               className="
               w-full bg-transparent
               outline-none
             "
             >
-              <option value="">
-                Select City
-              </option>
+              <option value="">Select City</option>
 
-              {airports.map(
-                (airport) => (
-                  <option
+              {airports.map((airport) => (
+                <option
                   className="dark:bg-slate-900"
-                    key={
-                      airport.code
-                    }
-                    value={
-                      airport.code
-                    }
-                  >
-                    {airport.city}
-                    {" "}
-                    (
-                    {
-                      airport.code
-                    }
-                    )
-                  </option>
-                )
-              )}
+                  key={airport.code}
+                  value={airport.code}
+                >
+                  {airport.city} ({airport.code})
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -251,14 +180,10 @@ export default function FlightSearch() {
             />
 
             <input
-            title="date"
+              title="date"
               type="date"
-              value={date}
-              onChange={(e) =>
-                setDate(
-                  e.target.value
-                )
-              }
+              value={searchQuery.date}
+              onChange={(e) => setSearchQuery({ date: e.target.value })}
               className="
               w-full bg-transparent
               outline-none
@@ -294,32 +219,22 @@ export default function FlightSearch() {
             />
 
             <select
-            title="passenger"
-              value={passengers}
+              title="passenger"
+              value={searchQuery.passengers}
               onChange={(e) =>
-                setPassengers(
-                  e.target.value
-                )
+                setSearchQuery({ passengers: Number(e.target.value) })
               }
               className="
               w-full bg-transparent
               outline-none
             "
             >
-              {[1, 2, 3, 4, 5].map(
-                (count) => (
-                  <option
-                  className="dark:bg-slate-900"
-                    key={count}
-                    value={count}
-                  >
-                    {count} Passenger
-                    {count > 1
-                      ? "s"
-                      : ""}
-                  </option>
-                )
-              )}
+              {[1, 2, 3, 4, 5].map((count) => (
+                <option className="dark:bg-slate-900" key={count} value={count}>
+                  {count} Passenger
+                  {count > 1 ? "s" : ""}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -344,12 +259,15 @@ export default function FlightSearch() {
           "
           >
             <select
-            title="flight-type"
-              value={flightClass}
+              title="flight-type"
+              value={searchQuery.flightClass}
               onChange={(e) =>
-                setFlightClass(
-                  e.target.value
-                )
+                setSearchQuery({
+                  flightClass: e.target.value as
+                    | "economy"
+                    | "business"
+                    | "first",
+                })
               }
               className="
               w-full bg-transparent
@@ -357,17 +275,11 @@ export default function FlightSearch() {
               dark:bg-slate-900
             "
             >
-              <option value="economy">
-                Economy
-              </option>
+              <option value="economy">Economy</option>
 
-              <option value="business">
-                Business
-              </option>
+              <option value="business">Business</option>
 
-              <option value="first">
-                First Class
-              </option>
+              <option value="first">First Class</option>
             </select>
           </div>
         </div>
@@ -376,7 +288,7 @@ export default function FlightSearch() {
       {/* SEARCH BUTTON */}
       <button
         onClick={handleSearch}
-        disabled={!from || !to}
+        disabled={!searchQuery.from || !searchQuery.to}
         className="
         mt-8 flex w-full
         items-center
