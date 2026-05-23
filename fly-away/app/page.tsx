@@ -48,8 +48,7 @@ export default function Home() {
                 md:text-6xl
               "
               >
-                Explore the World
-                With Confidence
+                Explore the World With Confidence
               </h1>
 
               <p
@@ -60,9 +59,7 @@ export default function Home() {
                 dark:text-slate-400
               "
               >
-                Book flights with the
-                best prices, seamless
-                booking experience,
+                Book flights with the best prices, seamless booking experience,
                 and premium comfort.
               </p>
 
@@ -112,6 +109,7 @@ export default function Home() {
               <Image
                 src="/images/hero-flight.avif"
                 alt="Flight"
+                loading="lazy"
                 width={700}
                 height={700}
                 priority
