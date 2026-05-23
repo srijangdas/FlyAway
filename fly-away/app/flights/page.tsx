@@ -127,6 +127,14 @@ export default async function FlightsPage({
                   id={flight.id}
                   airline={flight.flight_no}
                   stops="Non-stop"
+                  departureDate={new Date(flight.departs_at).toLocaleDateString(
+                    "en-IN",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    },
+                  )}
                   departureTime={new Date(flight.departs_at).toLocaleTimeString(
                     [],
                     {
