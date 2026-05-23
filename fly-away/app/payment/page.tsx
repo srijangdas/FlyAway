@@ -90,7 +90,7 @@ function PaymentContent() {
       toast.success("Payment Successful");
 
       resetBooking();
-      router.push(`/my-bookings/${result.bookingId}`);
+      router.push(`/booking/confirmation?pnr=${result.pnr}`);
     } catch (error) {
       console.error(error);
 

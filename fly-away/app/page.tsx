@@ -112,7 +112,6 @@ export default function Home() {
                 loading="lazy"
                 width={700}
                 height={700}
-                priority
                 className="
                 w-full object-contain
               "
