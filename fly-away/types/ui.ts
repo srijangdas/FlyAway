@@ -24,6 +24,7 @@ export type FlightCardClassOption = {
 export type FlightCardProps = {
   id: string;
   airline: string;
+  departureDate: string;
   departureTime: string;
   arrivalTime: string;
   origin: string;

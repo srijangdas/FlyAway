@@ -13,6 +13,7 @@ import type { FlightCardProps } from "@/types/ui";
 export default function FlightCard({
   id,
   airline,
+  departureDate,
   departureTime,
   arrivalTime,
   origin,
@@ -202,13 +203,11 @@ export default function FlightCard({
         <div
           className="
           flex items-center
-          gap-2 text-sm
+          gap-2 font-bold
           text-slate-500
         "
         >
-          <Clock3 size={18} />
-
-          <span>{duration}</span>
+          <h2>{departureDate}</h2>
         </div>
       </div>
 

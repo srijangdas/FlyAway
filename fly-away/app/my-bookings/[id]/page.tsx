@@ -209,9 +209,26 @@ export default function BookingDetailsPage() {
                     Route: {flight?.origin}→{flight?.destination}
                   </p>
 
+                  <p>
+                    Departure Date:
+                    <p className="font-bold">
+                      {new Date(flight?.departs_at ?? "").toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
+                        },
+                      )}
+                    </p>
+                  </p>
+
                   <p>Seat: {seat?.seat_number}</p>
 
-                  <p>Class: {seat?.class}</p>
+                  <p>Class: {seat?.class.toUpperCase()}</p>
                 </div>
               </div>
 
@@ -268,6 +285,7 @@ export default function BookingDetailsPage() {
                         rounded-2xl
                         bg-red-600
                         px-5 py-3
+                        w-full
                         my-5
                         text-white
                       "

@@ -154,7 +154,7 @@ export async function POST(req: Request) {
 
       bookingId: booking.id,
 
-      pnr,
+      pnr: booking.pnr_code,
     });
   } catch (error) {
     console.error(error);
