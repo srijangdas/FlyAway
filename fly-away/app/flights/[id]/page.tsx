@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/navbar";
 import SeatMap from "@/components/seat/seat-map";
 
 import { createClient } from "@/lib/supabase/server";

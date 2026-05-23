@@ -1,4 +1,4 @@
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/navbar";
 import FlightSearch from "@/components/flight/flight-search";
 import FlightCard from "@/components/flight/flight-card";
 

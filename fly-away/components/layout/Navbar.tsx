@@ -5,7 +5,7 @@ import { useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "next-themes";
-import LogoutButton from "./LogoutButton";
+import LogoutButton from "./logoutButton";
 import { useUserStore } from "@/store/user-store";
 
 export default function Navbar() {

@@ -1,6 +1,6 @@
 "use client";
 
-import Navbar from "@/components/layout/Navbar";
+import Navbar from "@/components/layout/navbar";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
