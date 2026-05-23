@@ -1,43 +1,46 @@
 "use client";
 
 import Navbar from "@/components/layout/Navbar";
+import Link from "next/link";
+
+import { Suspense, useEffect, useState } from "react";
 
 import { useSearchParams } from "next/navigation";
 
-import { useEffect, useState } from "react";
-
-import Link from "next/link";
-
 import { createClient } from "@/lib/supabase/client";
 
-export default function ConfirmationPage() {
+import { Booking } from "@/types/booking";
+
+import { Flight } from "@/types/flight";
+
+import { Seat } from "@/types/seat";
+
+import { Passenger } from "@/types/passenger";
+
+function ConfirmationContent() {
   const supabase = createClient();
 
   const searchParams = useSearchParams();
 
   const pnr = searchParams.get("pnr");
 
-  const [booking, setBooking] =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useState<any>(null);
+  const [booking, setBooking] = useState<Booking | null>(null);
 
-  const [flight, setFlight] =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useState<any>(null);
+  const [flight, setFlight] = useState<Flight | null>(null);
 
-  const [seat, setSeat] =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useState<any>(null);
+  const [seat, setSeat] = useState<Seat | null>(null);
 
-  const [passenger, setPassenger] =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    useState<any>(null);
+  const [passenger, setPassenger] = useState<Passenger | null>(null);
 
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadBooking() {
-      if (!pnr) return;
+      if (!pnr) {
+        setLoading(false);
+
+        return;
+      }
 
       // BOOKING
       const { data: bookingData } = await supabase
@@ -46,7 +49,11 @@ export default function ConfirmationPage() {
         .eq("pnr_code", pnr)
         .single();
 
-      if (!bookingData) return;
+      if (!bookingData) {
+        setLoading(false);
+
+        return;
+      }
 
       setBooking(bookingData);
 
@@ -84,7 +91,19 @@ export default function ConfirmationPage() {
   }, [pnr]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!pnr) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        Invalid booking
+      </div>
+    );
   }
 
   return (
@@ -123,8 +142,7 @@ export default function ConfirmationPage() {
                 justify-center
                 rounded-full
                 bg-green-100
-                text-5xl
-              "
+                text-5xl"
               >
                 ✅
               </div>
@@ -139,12 +157,7 @@ export default function ConfirmationPage() {
                 Booking Confirmed
               </h1>
 
-              <p
-                className="
-                mt-2
-                text-slate-500
-              "
-              >
+              <p className="mt-2 text-slate-500">
                 Your ticket has been booked successfully.
               </p>
             </div>
@@ -158,14 +171,7 @@ export default function ConfirmationPage() {
               dark:bg-slate-800
             "
             >
-              <p
-                className="
-                text-sm
-                text-slate-500
-              "
-              >
-                PNR CODE
-              </p>
+              <p className="text-sm text-slate-500">PNR CODE</p>
 
               <h2
                 className="
@@ -185,20 +191,8 @@ export default function ConfirmationPage() {
               md:grid-cols-2
             "
             >
-              <div
-                className="
-                rounded-3xl
-                border p-5
-              "
-              >
-                <h3
-                  className="
-                  text-xl
-                  font-bold
-                "
-                >
-                  Flight Details
-                </h3>
+              <div className="rounded-3xl border p-5">
+                <h3 className="text-xl font-bold">Flight Details</h3>
 
                 <div className="mt-4 space-y-3">
                   <p>Flight: {flight?.flight_no}</p>
@@ -213,20 +207,8 @@ export default function ConfirmationPage() {
                 </div>
               </div>
 
-              <div
-                className="
-                rounded-3xl
-                border p-5
-              "
-              >
-                <h3
-                  className="
-                  text-xl
-                  font-bold
-                "
-                >
-                  Passenger
-                </h3>
+              <div className="rounded-3xl border p-5">
+                <h3 className="text-xl font-bold">Passenger</h3>
 
                 <div className="mt-4 space-y-3">
                   <p>Name: {passenger?.full_name}</p>
@@ -274,5 +256,13 @@ export default function ConfirmationPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function ConfirmationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ConfirmationContent />
+    </Suspense>
   );
 }

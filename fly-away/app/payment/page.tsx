@@ -4,7 +4,7 @@ import Navbar from "@/components/layout/Navbar";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { toast } from "sonner";
 
@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useFlightStore } from "@/store/flight-store";
 import { Seat } from "@/types/seat";
 
-export default function PaymentPage() {
+function PaymentContent() {
   const router = useRouter();
 
   const supabase = createClient();
@@ -254,5 +254,25 @@ export default function PaymentPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="
+          flex min-h-screen
+          items-center
+          justify-center
+        "
+        >
+          Loading...
+        </div>
+      }
+    >
+      <PaymentContent />
+    </Suspense>
   );
 }

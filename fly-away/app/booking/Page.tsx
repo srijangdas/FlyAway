@@ -4,14 +4,14 @@ import Navbar from "@/components/layout/Navbar";
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 
 import { toast } from "sonner";
 
 import { useFlightStore } from "@/store/flight-store";
 import type { PassengerForm } from "@/types/passenger";
 
-export default function BookingPage() {
+function BookingContent() {
   const router = useRouter();
 
   const searchParams = useSearchParams();
@@ -245,5 +245,25 @@ export default function BookingPage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function BookingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div
+          className="
+          flex min-h-screen
+          items-center
+          justify-center
+        "
+        >
+          Loading...
+        </div>
+      }
+    >
+      <BookingContent />
+    </Suspense>
   );
 }
