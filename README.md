@@ -97,3 +97,58 @@ npm start
 
 ![alt text](image.png)
 **94%**
+
+# Zustand Store Structure
+
+The project uses Zustand for lightweight global state management.
+
+useFlightStore
+
+Handles the flight booking flow.
+
+## Stores:
+
+Active search query
+Selected flight
+Selected seat(s)
+Current booking step
+Passenger form data
+Persistence:
+
+## Uses Zustand Persist middleware to:
+
+Resume booking after refresh
+Restore in-progress booking state
+Security:
+
+## Sensitive fields such as:
+
+passport number
+are excluded from local storage using:
+
+partialize()
+
+to avoid persisting private user data.
+
+useUserStore
+
+Handles authenticated user state.
+
+## Stores:
+
+Supabase session token
+Cached booking data
+Persistence:
+
+Only session-related information is persisted.
+
+Large or sensitive user data is intentionally excluded.
+
+Store Reset Actions
+
+## Automatic reset actions are triggered on:
+
+User logout
+Booking cancellation
+
+to avoid stale booking data and maintain clean application state.
