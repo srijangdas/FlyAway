@@ -4,6 +4,11 @@ import FlightCard from "@/components/flight/flight-card";
 
 import { createClient } from "@/lib/supabase/server";
 
+function getMinDepartureTime() {
+  const thirtyMinutesFromNow = Date.now() + 30 * 60 * 1000;
+  return new Date(thirtyMinutesFromNow).toISOString();
+}
+
 export default async function FlightsPage({
   searchParams,
 }: {
@@ -29,13 +34,21 @@ export default async function FlightsPage({
     query = query.eq("destination", params.to);
   }
 
+  //CURR_TIME+30mins
+  const minDeparture = getMinDepartureTime();
+
   // DATE FILTER
   if (params.date) {
     const startOfDay = `${params.date}T00:00:00`;
 
     const endOfDay = `${params.date}T23:59:59`;
 
-    query = query.gte("departs_at", startOfDay).lte("departs_at", endOfDay);
+    query = query
+      .gte("departs_at", startOfDay)
+      .lte("departs_at", endOfDay)
+      .gte("departs_at", minDeparture);
+  } else {
+    query = query.gte("departs_at", minDeparture);
   }
 
   const { data: flights, error } = await query.order("departs_at", {

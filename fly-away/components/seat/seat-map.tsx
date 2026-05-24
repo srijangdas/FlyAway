@@ -40,6 +40,7 @@ export default function SeatMap({
 
   // FETCH SEATS
   useEffect(() => {
+    setSelectedSeats([]);
     async function fetchSeats() {
       const { data } = await supabase
         .from("seats")
@@ -159,6 +160,7 @@ export default function SeatMap({
   async function handleContinue() {
     // NORMAL FLOW
     if (!isReschedule) {
+      setSelectedSeats([]);
       router.push(
         `/booking?flightId=${flightId}&seatId=${selectedSeats[0]?.id}&passengers=${passengerCount}`,
       );
@@ -260,6 +262,8 @@ export default function SeatMap({
       toast.success(
         fee > 0 ? `Flight rescheduled (+₹${fee})` : "Flight rescheduled!",
       );
+
+      setSelectedSeats([]);
 
       router.push(`/my-bookings/${bookingId}`);
     } catch (error) {
